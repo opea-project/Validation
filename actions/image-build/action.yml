@@ -35,22 +35,20 @@ runs:
       run: |
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
         REGISTRY=${{ inputs.registry }} \
-        docker compose -p ${GITHUB_RUN_NUMBER} build --no-cache
+        docker compose build --no-cache
       working-directory: ${{ inputs.work_dir }}
     - name: Push Containers
       shell: bash
       run: |
         REGISTRY=${{ inputs.registry }} \
-        docker compose -p ${GITHUB_RUN_NUMBER} push
-        docker images
+        docker compose push
       working-directory: ${{ inputs.work_dir }}
     - name: Clean up Containers
       if: ${{ always() }}
       shell: bash
       run: |
         REGISTRY=${{ inputs.registry }} \
-        docker compose -p ${GITHUB_RUN_NUMBER} down --rmi all
-        docker images
+        docker compose down --rmi all
       working-directory: ${{ inputs.work_dir }}
     - name: Remove Containers
       if: ${{ always() }}
