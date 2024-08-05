@@ -35,12 +35,14 @@ runs:
       run: |
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
         REGISTRY=${{ inputs.registry }} \
+        TAG=${{ inputs.tag }} \
         docker compose build --no-cache
       working-directory: ${{ inputs.work_dir }}
     - name: Push Containers
       shell: bash
       run: |
         REGISTRY=${{ inputs.registry }} \
+        TAG=${{ inputs.tag }} \
         docker compose push
       working-directory: ${{ inputs.work_dir }}
     - name: Clean up Containers
@@ -48,6 +50,7 @@ runs:
       shell: bash
       run: |
         REGISTRY=${{ inputs.registry }} \
+        TAG=${{ inputs.tag }} \
         docker compose down --rmi all
       working-directory: ${{ inputs.work_dir }}
     - name: Remove Containers
