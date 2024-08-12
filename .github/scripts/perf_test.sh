@@ -56,29 +56,36 @@ function installChatQnA() {
     echo "Install ChatQnA."
     num_gaudi=$1
     
-    path="GenAIExamples/ChatQnA/benchmark/"
+    mpath="ChatQnA/benchmark/"
     if num_gaudi -eq 1; then
-        path += "single_gaudi"
+        mpath += "single_gaudi"
     elif num_gaudi -eq 2; then
-        path += "two_gaudi"
+        mpath += "two_gaudi"
     elif num_gaudi -eq 4; then
-        path += "four_gaudi"
+        mpath += "four_gaudi"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
     fi
-    if [ ! -d $path ]; then
-        echo "Directory $path does not exist."
+    if [ ! -d $mpath ]; then
+        echo "Directory $mpath does not exist."
         exit 1
     fi
-    kubectl apply -f $path/.
+
+    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#image: opea/\(.*\):latest#image: opea/\1:${IMAGE_TAG}#g" {} \;
+    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#image: opea/*#image: ${IMAGE_REPO}/opea/#g" {} \;
+    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(HF_TOKEN)#${HF_TOKEN}#g" {} \;
+    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
+    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
+    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
+    kubectl apply -f $mpath/.
 }
 
 function uninstallChatQnA() {
     echo "Uninstall ChatQnA."
     num_gaudi=$1
 
-    path="GenAIExamples/ChatQnA/benchmark/"
+    path="ChatQnA/benchmark/"
     if num_gaudi -eq 1; then
         path += "single_gaudi"
     elif num_gaudi -eq 2; then
@@ -98,39 +105,59 @@ function uninstallChatQnA() {
 
 function stress_benchmark(){
     echo "Start stress benchmark."
-
-    python GenAIEval/evals/benchmark/stress_benchmark.py -f $data_path -s $server -c $concurrency -d $duration -t $test_type
 }
 
-function four_gaudi_benchmark() {
-    echo "Running four gaudi benchmark."
-    cd $github_base
-    cordon 4
-    installChatQnA 4
-    stress_benchmark
-    uninstallChatQnA 4
-    uncordon
+function generate_config(){
+    echo "Generate benchmark config"
+    num_gaudi=$1
+    # under GenAIEval folder
+    input_path="../Validation/.github/scripts/benchmark.yaml"
+    output_path="evals/benchmark/benchmark_${num_gaudi}.yaml"
+    test_output_dir="/home/sdp/benchmark_output/node_${num_gaudi}"
+
+    if num_gaudi -eq 1; then
+        user_queries="4, 8, 16, 32, 64, 128, 256, 512"
+    elif num_gaudi -eq 2; then
+        user_queries="4, 8, 16, 32, 64, 128, 256, 512, 1024"
+    elif num_gaudi -eq 4; then
+        user_queries="4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096"
+    else
+        echo "Unsupported number of gaudi: $num_gaudi"
+        exit 1
+    fi
+    envsubst < $input_path > $output_path
 }
 
-function two_gaudi_benchmark() {
-    echo "Running two gaudi benchmark."
-    cd $github_base
-    cordon 2
-    installChatQnA 2
-    stress_benchmark
-    uninstallChatQnA 2
-    uncordon
-}
 
-function single_gaudi_benchmark() {
-    echo "Running single gaudi benchmark."
-    cd $github_base
-    cordon 1
-    installChatQnA 1
-    stress_benchmark
-    uninstallChatQnA 1
-    uncordon
-}
+# function four_gaudi_benchmark() {
+#     echo "Running four gaudi benchmark."
+#     cd $github_base
+#     cordon 4
+#     installChatQnA 4
+#     stress_benchmark
+#     uninstallChatQnA 4
+#     uncordon
+# }
+
+# function two_gaudi_benchmark() {
+#     echo "Running two gaudi benchmark."
+#     cd $github_base
+#     cordon 2
+#     installChatQnA 2
+#     stress_benchmark
+#     uninstallChatQnA 2
+#     uncordon
+# }
+
+# function single_gaudi_benchmark() {
+#     echo "Running single gaudi benchmark."
+#     cd $github_base
+#     cordon 1
+#     installChatQnA 1
+#     stress_benchmark
+#     uninstallChatQnA 1
+#     uncordon
+# }
 
 function usage()
 {
@@ -151,24 +178,42 @@ PARSED_OPTIONS=$(getopt -o "$OPTIONS" --long "$LONGOPTIONS" -n "$0" -- "$@")
 case "$1" in
     -h|--help)
         usage
-        exit 0
         ;;
-    --install_stress_tool)
-        installStressTool
-        exit 0
+    --cordon)
+        cordon $2
         ;;
-    --single_gaudi_benchmark)
-        single_gaudi_benchmark
-        exit 0
+    --uncordon)
+        uncordon
         ;;
-    --two_gaudi_benchmark)
-        two_gaudi_benchmark
-        exit 0
+    --installChatQnA)
+        pushd $3
+        installChatQnA $2
+        popd
         ;;
-    --four_gaudi_benchmark)
-        four_gaudi_benchmark
-        exit 0
+    --uninstallChatQnA)
+        pushd $3
+        uninstallChatQnA $2
+        popd
         ;;
+    --generate_config)
+        generate_config $2
+        ;;
+    # --install_stress_tool)
+    #     installStressTool
+    #     exit 0
+    #     ;;
+    # --single_gaudi_benchmark)
+    #     single_gaudi_benchmark
+    #     exit 0
+    #     ;;
+    # --two_gaudi_benchmark)
+    #     two_gaudi_benchmark
+    #     exit 0
+    #     ;;
+    # --four_gaudi_benchmark)
+    #     four_gaudi_benchmark
+    #     exit 0
+    #     ;;
     *)
         echo "Unknown option: $1"
         usage
