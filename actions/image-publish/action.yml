@@ -1,0 +1,44 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+---
+name: Build Container
+description: Given the inputs found below, build all containers found in a docker-compose.yaml file for a given configuration
+inputs:
+  local_image_ref:
+    description: 'image reference'
+    required: true
+  image_name:
+    description: 'public image name'
+    required: true
+  publish_tags:
+    description: 'publish the image with the specified tag'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: docker/login-action@v3.2.0
+      with:
+        username: ${{ secrets.DOCKERHUB_USER }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Pull Images
+      run: |
+        docker rmi ${{ inputs.local_image_ref }} || true
+        docker pull ${{ inputs.local_image_ref }}
+
+    - name: Push Images
+      run: |
+        # Tag the Images with New Names 
+        for tag in $(echo ${{ inputs.publish_tags }} | tr ',' ' '); do
+          docker tag ${{ inputs.local_image_ref }} ${{ inputs.image_name }}:${tag}
+          docker push ${{ inputs.image_name }}:${tag}
+          docker rmi ${{ inputs.image_name }}:${tag}
+        done
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker logout
+        docker rmi ${{ inputs.local_image_ref }} || true
