@@ -1,8 +1,16 @@
 #!/bin/bash
 
-source config.sh
+data_path="GenAIEval/evals/benchmark/data.txt"
+server="localhost:8888"
+concurrency=50
+duration="30m"
+test_type="chatqna"
+github_base="~/testChatQnA"
 
-function prepare() {
+function installStressTool() {
+    python3 -m venv stressbenchmark_virtualenv
+    source stressbenchmark_virtualenv/bin/activate
+    pip install -r GenAIEval/requirements.txt
     pip install argparse requests transformers
 }
 
@@ -11,6 +19,10 @@ function cordon() {
 
     no_cordon_nums=$1
     need_cordon_nums=$(kubectl get nodes | wc -l)-$no_cordon_nums
+    if [[ $need_cordon_nums -le 0 ]]; then
+        echo "No need to cordon nodes."
+        return
+    fi
     cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
 
@@ -25,8 +37,6 @@ function cordon() {
         fi
         kubectl cordon $node_name
         cordoned_count=$((cordoned_count + 1))
-
-        # 如果已经 cordon 了指定数量的节点，则退出循环
         if [[ $cordoned_count -ge $need_cordon_nums ]]; then
             break
         fi
@@ -40,32 +50,6 @@ function uncordon() {
     for node_name in $cluster_node_names; do
         kubectl uncordon $node_name
     done
-}
-
-function installGenAIExamples{
-    echo "Install GenAIExamples."
-
-    TARGET_DIR="GenAIExamples"
-    REPO_URL="https://github.com/opea-project/GenAIExamples.git"
-
-    if [ ! -d "$TARGET_DIR" ]; then
-        echo "Directory $TARGET_DIR does not exist. Cloning repository..."
-        git clone $REPO_URL
-    else
-        echo "Directory $TARGET_DIR already exists."
-    fi
-}
-
-function uninstallGenAIExamples{
-    echo "Uninstall GenAIExamples."
-
-    TARGET_DIR="GenAIExamples"
-    if [ -d "$TARGET_DIR" ]; then
-        echo "Directory $TARGET_DIR exists. Deleting..."
-        rm -rf $TARGET_DIR
-    else
-        echo "Directory $TARGET_DIR does not exist."
-    fi
 }
 
 function installChatQnA() {
@@ -112,31 +96,6 @@ function uninstallChatQnA() {
     kubectl delete -f $path/.
 }
 
-function installGenAIEval(){
-    echo "Install GenAIEval."
-
-    TARGET_DIR="GenAIEval"
-    REPO_URL="https://github.com/opea-project/GenAIEval.git"
-    if [ ! -d "$TARGET_DIR" ]; then
-        echo "Directory $TARGET_DIR does not exist. Cloning repository..."
-        git clone $REPO_URL
-    else
-        echo "Directory $TARGET_DIR already exists."
-    fi
-}
-
-function uninstallGenAIEval(){
-    echo "Uninstall GenAIEval."
-
-    TARGET_DIR="GenAIEval"
-    if [ -d "$TARGET_DIR" ]; then
-        echo "Directory $TARGET_DIR exists. Deleting..."
-        rm -rf $TARGET_DIR
-    else
-        echo "Directory $TARGET_DIR does not exist."
-    fi
-}
-
 function stress_benchmark(){
     echo "Start stress benchmark."
 
@@ -145,6 +104,7 @@ function stress_benchmark(){
 
 function four_gaudi_benchmark() {
     echo "Running four gaudi benchmark."
+    cd $github_base
     cordon 4
     installChatQnA 4
     stress_benchmark
@@ -154,6 +114,7 @@ function four_gaudi_benchmark() {
 
 function two_gaudi_benchmark() {
     echo "Running two gaudi benchmark."
+    cd $github_base
     cordon 2
     installChatQnA 2
     stress_benchmark
@@ -163,6 +124,7 @@ function two_gaudi_benchmark() {
 
 function single_gaudi_benchmark() {
     echo "Running single gaudi benchmark."
+    cd $github_base
     cordon 1
     installChatQnA 1
     stress_benchmark
@@ -170,27 +132,13 @@ function single_gaudi_benchmark() {
     uncordon
 }
 
-function start() {
-    echo "Start."
-    prepare
-    mkdir -p $perf_test_dir
-    cd $perf_test_dir
-    installGenAIExamples
-    installGenAIEval
-}
-
-function cleanup() {
-    echo "Cleanup."
-    rm -rf $perf_test_dir
-}
-
 function usage()
 {
-	echo "Usage: $0 --start --single_gaudi_benchmark --two_gaudi_benchmark --four_gaudi_benchmark --cleanup"
+	echo "Usage: $0 --install_stress_tool --single_gaudi_benchmark --two_gaudi_benchmark --four_gaudi_benchmark"
 }
 
 OPTIONS="-h"
-LONGOPTIONS="help,start,single_gaudi_benchmark,two_gaudi_benchmark,four_gaudi_benchmark,cleanup"
+LONGOPTIONS="help,install_stress_tool,single_gaudi_benchmark,two_gaudi_benchmark,four_gaudi_benchmark"
 
 if [ $# -lt 1 ]; then
 	usage
@@ -198,43 +146,32 @@ if [ $# -lt 1 ]; then
 fi
 # Parse the options
 PARSED_OPTIONS=$(getopt -o "$OPTIONS" --long "$LONGOPTIONS" -n "$0" -- "$@")
-eval set -- "$PARSED_OPTIONS"
-#Process the options
 
-while true; do
-	case "$1" in
-		-h|--help)
-			usage
-			exit 0
-			;;
-		--single_gaudi_benchmark)
-			single_gaudi_benchmark
-			exit 0
-			;;
-		--two_gaudi_benchmark)
-			two_gaudi_benchmark
-			exit 0
-			;;
-        --four_gaudi_benchmark)
-			four_gaudi_benchmark
-			exit 0
-			;;
-        --cleanup)
-            cleanup
-            exit 0
-            ;;
-        --start)
-            start
-            exit 0
-            ;;
-		--)
-			shift
-			break
-			;;
-		*)
-			echo "Unknown option: $1"
-			usage
-			exit 1
-			;;
-	esac
-done
+#Process the options
+case "$1" in
+    -h|--help)
+        usage
+        exit 0
+        ;;
+    --install_stress_tool)
+        installStressTool
+        exit 0
+        ;;
+    --single_gaudi_benchmark)
+        single_gaudi_benchmark
+        exit 0
+        ;;
+    --two_gaudi_benchmark)
+        two_gaudi_benchmark
+        exit 0
+        ;;
+    --four_gaudi_benchmark)
+        four_gaudi_benchmark
+        exit 0
+        ;;
+    *)
+        echo "Unknown option: $1"
+        usage
+        exit 1
+        ;;
+esac
