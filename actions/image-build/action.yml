@@ -30,11 +30,10 @@ runs:
     - name: Build Containers
       shell: bash
       run: |
-        mkdir ${{ inputs.work_dir }}
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
-        docker compose build --no-cache
+        docker compose -f docker-compose.yaml build --no-cache
       working-directory: ${{ inputs.work_dir }}
     - name: Push Containers
       shell: bash
