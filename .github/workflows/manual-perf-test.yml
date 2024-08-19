@@ -12,12 +12,12 @@ on:
         required: false
         type: string
       tag:
-        default: "rc0.9"
+        default: "v0.9rc"
         description: "Tag to apply to images"
         required: true
         type: string
       opea_branch:
-        default: "rc0.9"
+        default: "v0.9rc"
         description: "Branch to build images"
         required: true
         type: string
