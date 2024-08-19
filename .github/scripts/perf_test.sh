@@ -78,6 +78,7 @@ function installChatQnA() {
     find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
     find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
     find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
+    #find $mpath/* -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
     kubectl apply -f $mpath/.
 }
 
@@ -110,9 +111,9 @@ function stress_benchmark(){
 function generate_config(){
     echo "Generate benchmark config"
     num_gaudi=$1
-    # under GenAIEval folder
-    input_path="../Validation/.github/scripts/benchmark.yaml"
-    output_path="evals/benchmark/benchmark_${num_gaudi}.yaml"
+    # under Validate folder
+    input_path=".github/scripts/benchmark.yaml"
+    output_path="../GenAIEval/evals/benchmark/benchmark_${num_gaudi}.yaml"
     test_output_dir="/home/sdp/benchmark_output/node_${num_gaudi}"
 
     if num_gaudi -eq 1; then
