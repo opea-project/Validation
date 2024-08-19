@@ -1,0 +1,67 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+name: Build for test workload and push to a registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      workload:
+        default: "ChatQnA"
+        description: "The opea mega image to be built"
+        required: true
+        type: string
+      registry:
+        default: ""
+        description: "Registry to store images,e.g., docker.io, default is empty"
+        required: false
+        type: string
+      tag:
+        default: "rc0.9"
+        description: "Tag to apply to images"
+        required: true
+        type: string
+      opea_branch:
+        default: "rc0.9"
+        description: "Branch to build images"
+        required: true
+        type: string
+      runner:
+        description: "Runner label"
+        required: true
+        type: string
+
+
+jobs:
+  build-images:
+    runs-on: "${{ inputs.runner }}"
+    steps:
+      - name: Clean Up Working Directory
+        run: sudo rm -rf ${{github.workspace}}/*
+
+      - name: Checkout out Repo
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIExamples
+          ref: ${{ inputs.opea_branch }}
+
+      - name: Clone required Repo
+        run: |
+          cd ${{ github.workspace }}/${{ inputs.workload }}/docker
+          docker_compose_path=${{ github.workspace }}/${{ inputs.workload }}/docker/docker_build_compose.yaml
+          if [[ $(grep -c "tei-gaudi:" ${docker_compose_path}) != 0 ]]; then
+              git clone https://github.com/huggingface/tei-gaudi.git
+          fi
+          if [[ $(grep -c "vllm:" ${docker_compose_path}) != 0 ]]; then
+              git clone https://github.com/vllm-project/vllm.git
+          fi
+          git clone https://github.com/opea-project/GenAIComps.git
+          cd GenAIComps && git checkout ${{ inputs.opea_branch }} && cd ../
+
+      - name: Build Image
+        uses: opea-project/validation/actions/image-build@main
+        with:
+          work_dir: ${{ github.workspace }}/${{ inputs.workload }}/docker
+          docker_compose_path: ${{ github.workspace }}/${{ inputs.workload }}/docker/docker_build_compose.yaml
+          registry: ${{ inputs.registry }}/opea
+          tag: ${{ inputs.tag }}
