@@ -30,6 +30,7 @@ runs:
     - name: Build Containers
       shell: bash
       run: |
+        mkdir ${{ inputs.work_dir }}
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
