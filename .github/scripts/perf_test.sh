@@ -1,18 +1,9 @@
 #!/bin/bash
 
-data_path="GenAIEval/evals/benchmark/data.txt"
-server="localhost:8888"
-concurrency=50
-duration="30m"
-test_type="chatqna"
-github_base="~/testChatQnA"
-
-function installStressTool() {
-    python3 -m venv stressbenchmark_virtualenv
-    source stressbenchmark_virtualenv/bin/activate
-    pip install -r GenAIEval/requirements.txt
-    pip install argparse requests transformers
-}
+nodelabel="node-type=chatqna-opea"
+nodeunlabel="node-type-"
+namespace="default"
+modelpath="/mnt/models"
 
 function cordon() {
     echo "Cordon the node."
@@ -23,7 +14,8 @@ function cordon() {
         echo "No need to cordon nodes."
         return
     fi
-    cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
+    #cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
+    cluster_node_names="satg-opea-4node-3"
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
 
     if [ -z "$control_plane_node_name" ]; then
@@ -35,7 +27,8 @@ function cordon() {
         if [[ $node_name == $control_plane_node_name ]]; then
             continue
         fi
-        kubectl cordon $node_name
+        #kubectl cordon $node_name
+        kubectl label nodes $node_name $nodelabel
         cordoned_count=$((cordoned_count + 1))
         if [[ $cordoned_count -ge $need_cordon_nums ]]; then
             break
@@ -46,9 +39,11 @@ function cordon() {
 function uncordon() {
     echo "Uncordon the node."
 
-    cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
+    #cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
+    cluster_node_names=$(kubectl get nodes -l $nodelabel -o custom-columns=NAME:.metadata.name --no-headers)
     for node_name in $cluster_node_names; do
-        kubectl uncordon $node_name
+        #kubectl uncordon $node_name
+        kubectl label nodes $node_name $nodeunlabel
     done
 }
 
@@ -57,11 +52,11 @@ function installChatQnA() {
     num_gaudi=$1
     
     mpath="ChatQnA/benchmark/"
-    if num_gaudi -eq 1; then
+    if [ "$num_gaudi" -eq 1 ]; then
         mpath += "single_gaudi"
-    elif num_gaudi -eq 2; then
+    elif [ "$num_gaudi" -eq 2 ]; then
         mpath += "two_gaudi"
-    elif num_gaudi -eq 4; then
+    elif [ "$num_gaudi" -eq 4 ]; then
         mpath += "four_gaudi"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
@@ -72,14 +67,21 @@ function installChatQnA() {
         exit 1
     fi
 
-    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#image: opea/\(.*\):latest#image: opea/\1:${IMAGE_TAG}#g" {} \;
-    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#image: opea/*#image: ${IMAGE_REPO}/opea/#g" {} \;
-    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(HF_TOKEN)#${HF_TOKEN}#g" {} \;
-    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
-    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
-    find $mpath/* -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/\(.*\):latest#image: opea/\1:${IMAGE_TAG}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/*#image: ${IMAGE_REPO}/opea/#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#{HF_TOKEN}#${HF_TOKEN}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(HF_TOKEN)#${HF_TOKEN}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#/home/sdp/cesg#${modelpath}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#tei_gaudi:rerank#${IMAGE_REPO}/opea/tei_gaudi:rerank#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#tgi_gaudi:2.0.1#ghcr.io/huggingface/tgi-gaudi:2.0.1#g" {} \;
+
     #find $mpath/* -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
+
     kubectl apply -f $mpath/.
+    wait_until_all_pod_ready $namespace 300s
 }
 
 function uninstallChatQnA() {
@@ -87,11 +89,11 @@ function uninstallChatQnA() {
     num_gaudi=$1
 
     path="ChatQnA/benchmark/"
-    if num_gaudi -eq 1; then
+    if [ "$num_gaudi" -eq 1 ]; then
         path += "single_gaudi"
-    elif num_gaudi -eq 2; then
+    elif [ "$num_gaudi" -eq 2 ]; then
         path += "two_gaudi"
-    elif num_gaudi -eq 4; then
+    elif [ "$num_gaudi" -eq 4 ]; then
         path += "four_gaudi"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
@@ -104,24 +106,20 @@ function uninstallChatQnA() {
     kubectl delete -f $path/.
 }
 
-function stress_benchmark(){
-    echo "Start stress benchmark."
-}
-
 function generate_config(){
     echo "Generate benchmark config"
     num_gaudi=$1
     # under Validate folder
     input_path=".github/scripts/benchmark.yaml"
-    output_path="../GenAIEval/evals/benchmark/benchmark_${num_gaudi}.yaml"
-    test_output_dir="/home/sdp/benchmark_output/node_${num_gaudi}"
+    output_path="../GenAIEval/evals/benchmark/benchmark.yaml"
+    export TEST_OUTPUT_DIR="/home/sdp/benchmark_output/node_${num_gaudi}"
 
-    if num_gaudi -eq 1; then
-        user_queries="4, 8, 16, 32, 64, 128, 256, 512"
-    elif num_gaudi -eq 2; then
-        user_queries="4, 8, 16, 32, 64, 128, 256, 512, 1024"
-    elif num_gaudi -eq 4; then
-        user_queries="4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096"
+    if [ "$num_gaudi" -eq 1 ]; then
+        export USER_QUERIES="4, 8, 16, 32, 64, 128, 256, 512"
+    elif [ "$num_gaudi" -eq 2 ]; then
+        export USER_QUERIES="4, 8, 16, 32, 64, 128, 256, 512, 1024"
+    elif [ "$num_gaudi" -eq 4 ]; then
+        export USER_QUERIES="4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
@@ -129,44 +127,35 @@ function generate_config(){
     envsubst < $input_path > $output_path
 }
 
+function wait_until_all_pod_ready() {
+  namespace=$1
+  timeout=$2
 
-# function four_gaudi_benchmark() {
-#     echo "Running four gaudi benchmark."
-#     cd $github_base
-#     cordon 4
-#     installChatQnA 4
-#     stress_benchmark
-#     uninstallChatQnA 4
-#     uncordon
-# }
+  echo "Wait for all pods in NS $namespace to be ready..."
+  pods=$(kubectl get pods -n $namespace --no-headers -o custom-columns=":metadata.name")
+  # Loop through each pod
+  echo "$pods" | while read -r line; do
+    pod_name=$line
+    kubectl wait --for=condition=Ready pod/${pod_name} -n $namespace --timeout=${timeout}
+    if [ $? -ne 0 ]; then
+      echo "Pod $pod_name is not ready after waiting for ${timeout}"
+      echo "Pod $pod_name status:"
+      kubectl describe pod $pod_name -n $namespace
+      echo "Pod $pod_name logs:"
+      kubectl logs $pod_name -n $namespace
+      exit 1
+    fi
+  done
+}
 
-# function two_gaudi_benchmark() {
-#     echo "Running two gaudi benchmark."
-#     cd $github_base
-#     cordon 2
-#     installChatQnA 2
-#     stress_benchmark
-#     uninstallChatQnA 2
-#     uncordon
-# }
-
-# function single_gaudi_benchmark() {
-#     echo "Running single gaudi benchmark."
-#     cd $github_base
-#     cordon 1
-#     installChatQnA 1
-#     stress_benchmark
-#     uninstallChatQnA 1
-#     uncordon
-# }
 
 function usage()
 {
-	echo "Usage: $0 --install_stress_tool --single_gaudi_benchmark --two_gaudi_benchmark --four_gaudi_benchmark"
+	echo "Usage: $0 --cordon --uncordon --installChatQnA --uninstallChatQnA --generate_config"
 }
 
 OPTIONS="-h"
-LONGOPTIONS="help,install_stress_tool,single_gaudi_benchmark,two_gaudi_benchmark,four_gaudi_benchmark"
+LONGOPTIONS="help,cordon,uncordon,installChatQnA,uninstallChatQnA,generate_config"
 
 if [ $# -lt 1 ]; then
 	usage
@@ -199,22 +188,6 @@ case "$1" in
     --generate_config)
         generate_config $2
         ;;
-    # --install_stress_tool)
-    #     installStressTool
-    #     exit 0
-    #     ;;
-    # --single_gaudi_benchmark)
-    #     single_gaudi_benchmark
-    #     exit 0
-    #     ;;
-    # --two_gaudi_benchmark)
-    #     two_gaudi_benchmark
-    #     exit 0
-    #     ;;
-    # --four_gaudi_benchmark)
-    #     four_gaudi_benchmark
-    #     exit 0
-    #     ;;
     *)
         echo "Unknown option: $1"
         usage

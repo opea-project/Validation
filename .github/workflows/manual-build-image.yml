@@ -65,3 +65,22 @@ jobs:
           docker_compose_path: ${{ github.workspace }}/${{ inputs.workload }}/docker/docker_build_compose.yaml
           registry: ${{ inputs.registry }}/opea
           tag: ${{ inputs.tag }}
+
+  build-extra:
+    needs: [build-images]
+    runs-on: "${{ inputs.runner }}"
+    steps:
+      - name: Clean Up Working Directory
+        run: sudo rm -rf ${{github.workspace}}/*
+
+      - name: Checkout out Repo
+        uses: actions/checkout@v4
+        with:
+          repository: huggingface/tei-gaudi
+
+      - name: Build tei-gaudi:rerank
+        run: |
+          cd tei-gaudi
+          docker build . -f Dockerfile-hpu -t ${{ inputs.registry }}/opea/tei_gaudi:rerank
+          docker push ${{ inputs.registry }}/opea/tei_gaudi:rerank
+          docker rmi ${{ inputs.registry }}/opea/tei_gaudi:rerank

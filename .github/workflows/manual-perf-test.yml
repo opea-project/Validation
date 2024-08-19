@@ -27,39 +27,39 @@ on:
         type: string
 
 jobs:
-  # setup-stress:
-  #   runs-on: "${{ inputs.runner }}"
-  #   steps:
-  #     - name: Clean Up Working Directory
-  #       run: sudo rm -rf ${{github.workspace}}/*
+  setup-stress:
+    runs-on: "${{ inputs.runner }}"
+    steps:
+      - name: Clean Up Working Directory
+        run: sudo rm -rf ${{github.workspace}}/*
 
-  #     - name: Checkout out GenAIEval
-  #       uses: actions/checkout@v4
-  #       with:
-  #         path: Validation
+      - name: Checkout out GenAIEval
+        uses: actions/checkout@v4
+        with:
+          path: Validation
 
-  #     - name: Checkout out GenAIEval
-  #       uses: actions/checkout@v4
-  #       with:
-  #         repository: opea-project/GenAIEval
-  #         path: GenAIEval
+      - name: Checkout out GenAIEval
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIEval
+          path: GenAIEval
 
-  #     - name: Set up stress tool
-  #       run: |
-  #         cd GenAIEval
-  #         python3 -m venv stress_venv
-  #         source stress_venv/bin/activate
-  #         pip install -r requirements.txt
+      - name: Set up stress tool
+        run: |
+          cd GenAIEval
+          python3 -m venv stress_venv
+          source stress_venv/bin/activate
+          pip install -r requirements.txt
 
-  #     - name: Checkout out GenAIExamples
-  #       uses: actions/checkout@v4
-  #       with:
-  #         repository: opea-project/GenAIExamples
-  #         ref: ${{ inputs.opea_branch }}
-  #         path: GenAIExamples
+      - name: Checkout out GenAIExamples
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIExamples
+          ref: ${{ inputs.opea_branch }}
+          path: GenAIExamples
 
   run-benchmark:
-    # needs: [setup-stress]
+    needs: [setup-stress]
     runs-on: "${{ inputs.runner }}"
     strategy:
       matrix:
@@ -68,7 +68,7 @@ jobs:
       - name: Prepare benchmark configuration
         working-directory: ./Validation
         run: |
-          .github/scripts/perf_test.sh generate_config ${{ matrix.node_num }}
+          .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
           echo "uncordon=false" >> $GITHUB_ENV
           echo "uninstall=false" >> $GITHUB_ENV
 
@@ -76,7 +76,7 @@ jobs:
         working-directory: ./Validation
         run: |
           echo "uncordon=true" >> $GITHUB_ENV
-          .github/scripts/perf_test.sh cordon ${{ matrix.node_num }}
+          .github/scripts/perf_test.sh --cordon ${{ matrix.node_num }}
 
       - name: Install Workload
         working-directory: ./Validation
@@ -89,23 +89,24 @@ jobs:
           RERANK_MODEL_ID: "BAAI/bge-reranker-base"
         run: |
           echo "uninstall=true" >> $GITHUB_ENV
-          .github/scripts/perf_test.sh installChatQnA ${{ matrix.node_num }} ../GenAIExamples
+          .github/scripts/perf_test.sh --installChatQnA ${{ matrix.node_num }} ../GenAIExamples
 
       - name: Stress Test
-        working-directory: ./GenAIEval/evals/benchmark
+        working-directory: ./GenAIEval
         run: |
           source stress_venv/bin/activate
+          cd evals/benchmark
           python benchmark.py
 
       - name: Uninstall Workload
         if: ${{ fromJSON(env.uninstall) }}
         working-directory: ./Validation
         run: |
-          .github/scripts/perf_test.sh uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+          .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
 
       - name: K8s uncordon
         if: ${{ fromJSON(env.uncordon) }}
         working-directory: ./Validation
         run: |
-          .github/scripts/perf_test.sh uncordon
+          .github/scripts/perf_test.sh --uncordon
       
