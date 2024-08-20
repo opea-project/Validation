@@ -5,42 +5,12 @@ nodeunlabel="node-type-"
 namespace="default"
 modelpath="/mnt/models"
 
-function cordon() {
-    echo "Cordon the node."
-
-    no_cordon_nums=$1
-    need_cordon_nums=$(kubectl get nodes | wc -l)-$no_cordon_nums
-    if [[ $need_cordon_nums -le 0 ]]; then
-        echo "No need to cordon nodes."
-        return
-    fi
-    #cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
-    cluster_node_names="satg-opea-4node-3"
-    cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
-
-    if [ -z "$control_plane_node_name" ]; then
-        cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/master -o custom-columns=NAME:.metadata.name --no-headers)
-    fi
-
-    cordoned_count=0
-    for node_name in $cluster_node_names; do
-        if [[ $node_name == $control_plane_node_name ]]; then
-            continue
-        fi
-        kubectl cordon $node_name
-        cordoned_count=$((cordoned_count + 1))
-        if [[ $cordoned_count -ge $need_cordon_nums ]]; then
-            break
-        fi
-    done
-}
-
 function label() {
     echo "Label the node."
 
     label_nums=$1
     #cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
-    cluster_node_names="satg-opea-4node-3"
+    cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
@@ -50,7 +20,7 @@ function label() {
 
     label_count=0
     for node_name in $cluster_node_names; do
-        if [ $node_name == $control_plane_node_name ] && [ $label_nums -lt 4 ]; then
+        if [ $node_name == $control_plane_node_name ] && [ $label_nums -lt 2 ]; then
             continue
         fi
         kubectl label nodes $node_name $nodelabel
@@ -58,15 +28,6 @@ function label() {
         if [ $cordoned_count -ge $need_cordon_nums ]; then
             break
         fi
-    done
-}
-
-function uncordon() {
-    echo "Uncordon the node."
-
-    cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
-    for node_name in $cluster_node_names; do
-        kubectl uncordon $node_name
     done
 }
 
@@ -101,14 +62,13 @@ function installChatQnA() {
 
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/\(.*\):latest#image: opea/\1:${IMAGE_TAG}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/*#image: ${IMAGE_REPO}/opea/#g" {} \;
-    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#{HF_TOKEN}#${HF_TOKEN}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(HF_TOKEN)#${HF_TOKEN}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
-    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#/home/sdp/cesg#${modelpath}#g" {} \;
-    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#tei_gaudi:rerank#${IMAGE_REPO}/opea/tei_gaudi:rerank#g" {} \;
-    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#tgi_gaudi:2.0.1#ghcr.io/huggingface/tgi-gaudi:2.0.1#g" {} \;
+
+    #sed -i.bak -e '/- --max-input-length/ {n; s/1024/2048/;}' $mpath/llm-dependency_run.yaml
+    #sed -i.bak -e '/- --max-total-tokens/ {n; s/2048/4096/;}' $mpath/llm-dependency_run.yaml
 
     #find $mpath/* -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
 

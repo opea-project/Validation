@@ -55,7 +55,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: opea-project/GenAIExamples
-          ref: ${{ inputs.opea_branch }}
+          ref: main
+          #ref: ${{ inputs.opea_branch }}
           path: GenAIExamples
 
   run-benchmark:
@@ -63,7 +64,7 @@ jobs:
     runs-on: "${{ inputs.runner }}"
     strategy:
       matrix:
-        node_num: ["1"]
+        node_num: ["1","2"]
     steps:
       - name: Prepare benchmark configuration
         working-directory: ./Validation
@@ -102,12 +103,26 @@ jobs:
           source stress_venv/bin/activate
           cd evals/benchmark
           python benchmark.py
-          tar -cvf node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR
+          tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR
+          
+          last_test_folder=$(ls -td "$TEST_OUTPUT_DIR"/*/ | head -n 1)
+          testspec_file=${last_test_folder}1_testspec.yaml
+          cp $testspec_file ${{ github.workspace }}
+
+      - name: Print Test Result
+        run: |
+          cat 1_testspec.yaml
           
       - uses: actions/upload-artifact@v4.3.4
         with:
-          name: benchmark_result_${{ matrix.node_num }}node
+          name: ${{ matrix.node_num }}node_raw_data_tar
           path: node_${{ matrix.node_num }}.tar
+          overwrite: true
+
+      - uses: actions/upload-artifact@v4.3.4
+        with:
+          name: ${{ matrix.node_num }}node_testspec_yaml
+          path: 1_testspec.yaml
           overwrite: true
 
       - name: Uninstall Workload
