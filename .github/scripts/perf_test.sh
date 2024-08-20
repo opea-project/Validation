@@ -15,18 +15,18 @@ function label() {
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
-    if [ -z "$control_plane_node_name" ]; then
+    if [ -z "$cluster_control_plane_name" ]; then
         cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/master -o custom-columns=NAME:.metadata.name --no-headers)
     fi
 
     label_count=0
     for node_name in $cluster_node_names; do
-        if [ $node_name == $control_plane_node_name ] && [ $label_nums -lt $node_count ]; then
+        if [ "$node_name" == "$cluster_control_plane_name" ] && [ "$label_nums" -lt "$node_count" ]; then
             continue
         fi
         kubectl label nodes $node_name $nodelabel
-        cordoned_count=$((cordoned_count + 1))
-        if [ $cordoned_count -ge $need_cordon_nums ]; then
+        label_count=$((label_count+1))
+        if [ "$label_count" -ge "$label_nums" ]; then
             break
         fi
     done
