@@ -52,4 +52,4 @@ test_cases:
       service_name: "llm-dependency-svc"  # Replace with your service name
     e2e:
       run_test: true
-      service_name: "chatqna-backend-server-svc"  # Replace with your service name
+      service_name: "chaqna-backend-server-svc"  # Replace with your service name
