@@ -50,12 +50,12 @@ function label() {
 
     label_count=0
     for node_name in $cluster_node_names; do
-        if [[ $node_name == $control_plane_node_name ] && [ $label_nums -lt 4 ]]; then
+        if [ $node_name == $control_plane_node_name ] && [ $label_nums -lt 4 ]; then
             continue
         fi
         kubectl label nodes $node_name $nodelabel
         cordoned_count=$((cordoned_count + 1))
-        if [[ $cordoned_count -ge $need_cordon_nums ]]; then
+        if [ $cordoned_count -ge $need_cordon_nums ]; then
             break
         fi
     done
