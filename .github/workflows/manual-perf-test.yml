@@ -110,19 +110,19 @@ jobs:
           path: node_${{ matrix.node_num }}.tar
           overwrite: true
 
-      # - name: Uninstall Workload
-      #   if:  always()
-      #   working-directory: ./Validation
-      #   run: |
-      #     if $uninstall; then
-      #       .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
-      #     fi
+      - name: Uninstall Workload
+        if:  always()
+        working-directory: ./Validation
+        run: |
+          if $uninstall; then
+            .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+          fi
 
-      # - name: K8s Unlabel Nodes
-      #   if:  always()
-      #   working-directory: ./Validation
-      #   run: |
-      #     if $uncordon; then
-      #       .github/scripts/perf_test.sh --unlabel
-      #     fi
+      - name: K8s Unlabel Nodes
+        if:  always()
+        working-directory: ./Validation
+        run: |
+          if $uncordon; then
+            .github/scripts/perf_test.sh --unlabel
+          fi
       
