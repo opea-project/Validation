@@ -6,6 +6,11 @@ name: Run performance test on a Kubernetes cluster
 on:
   workflow_dispatch:
     inputs:
+      nodenums:
+        default: "1,2,4"
+        description: "List of test node numbers, e.g., 1,2,4"
+        required: true
+        type: string
       registry:
         default: ""
         description: "Registry to store images,e.g., docker.io, default is empty"
@@ -27,7 +32,21 @@ on:
         type: string
 
 jobs:
+  get-build-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      nodenums: ${{ steps.get-services.outputs.nodenums }}
+    steps:
+      - name: Get test Services
+        id: get-services
+        run: |
+          set -x
+          nodenum_list=($(echo ${{ github.event.inputs.nodenums }} | tr ',' ' '))
+          nodenums=$(printf '%s\n' "${nodenum_list[@]}" | sort -u | jq -R '.' | jq -sc '.')
+          echo "nodenums=$nodenums" >> $GITHUB_OUTPUT
+
   setup-stress:
+    needs: [get-build-matrix]
     runs-on: "${{ inputs.runner }}"
     steps:
       - name: Clean Up Working Directory
@@ -60,11 +79,11 @@ jobs:
           path: GenAIExamples
 
   run-benchmark:
-    needs: [setup-stress]
+    needs: [get-build-matrix, setup-stress]
     runs-on: "${{ inputs.runner }}"
     strategy:
       matrix:
-        node_num: ["1","2"]
+        node_num: ${{ fromJSON(needs.get-build-matrix.outputs.nodenums) }}
     steps:
       - name: Prepare benchmark configuration
         working-directory: ./Validation
