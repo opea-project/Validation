@@ -72,13 +72,13 @@ Benchmark parameters
 | LLM output tokens | 128 |
 
 Number of test requests for different scheduled node number:
-| Node account | Value |
+| Node account | Concurrent | Query number |
 | ---------- | ------------------ |
-| 1 | "4, 8, 16, 32, 64, 128, 256, 512" |
-| 2 | "4, 8, 16, 32, 64, 128, 256, 512, 1024" |
-| 4 | "4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096" |
+| 1 | 5 | 640 |
+| 2 | 5 | 1280 |
+| 4 | 5 | 2560 |
 
-More detailed configuration can be found in configuration file "(benchmark.yaml)[../../.github/scripts/benchmark.yaml]"
+More detailed configuration can be found in configuration file [benchmark.yaml](../../.github/scripts/benchmark.yaml).
 
 ### Single node test
 

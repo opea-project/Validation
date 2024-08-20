@@ -27,10 +27,35 @@ function cordon() {
         if [[ $node_name == $control_plane_node_name ]]; then
             continue
         fi
-        #kubectl cordon $node_name
-        kubectl label nodes $node_name $nodelabel
+        kubectl cordon $node_name
         cordoned_count=$((cordoned_count + 1))
         if [[ $cordoned_count -ge $need_cordon_nums ]]; then
+            break
+        fi
+    done
+}
+
+function label() {
+    echo "Label the node."
+
+    label_nums=$1
+    #cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
+    cluster_node_names="satg-opea-4node-3"
+
+    # get control plane name
+    cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
+    if [ -z "$control_plane_node_name" ]; then
+        cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/master -o custom-columns=NAME:.metadata.name --no-headers)
+    fi
+
+    label_count=0
+    for node_name in $cluster_node_names; do
+        if [ $node_name == $control_plane_node_name ] && [ $label_nums -lt 4 ]; then
+            continue
+        fi
+        kubectl label nodes $node_name $nodelabel
+        cordoned_count=$((cordoned_count + 1))
+        if [ $cordoned_count -ge $need_cordon_nums ]; then
             break
         fi
     done
@@ -39,10 +64,17 @@ function cordon() {
 function uncordon() {
     echo "Uncordon the node."
 
-    #cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
+    cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
+    for node_name in $cluster_node_names; do
+        kubectl uncordon $node_name
+    done
+}
+
+function unlabel() {
+    echo "Unlabel the node."
+
     cluster_node_names=$(kubectl get nodes -l $nodelabel -o custom-columns=NAME:.metadata.name --no-headers)
     for node_name in $cluster_node_names; do
-        #kubectl uncordon $node_name
         kubectl label nodes $node_name $nodeunlabel
     done
 }
@@ -53,11 +85,11 @@ function installChatQnA() {
     
     mpath="ChatQnA/benchmark/"
     if [ "$num_gaudi" -eq 1 ]; then
-        mpath += "single_gaudi"
+        mpath+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
-        mpath += "two_gaudi"
+        mpath+="two_gaudi"
     elif [ "$num_gaudi" -eq 4 ]; then
-        mpath += "four_gaudi"
+        mpath+="four_gaudi"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
@@ -90,11 +122,11 @@ function uninstallChatQnA() {
 
     path="ChatQnA/benchmark/"
     if [ "$num_gaudi" -eq 1 ]; then
-        path += "single_gaudi"
+        path+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
-        path += "two_gaudi"
+        path+="two_gaudi"
     elif [ "$num_gaudi" -eq 4 ]; then
-        path += "four_gaudi"
+        path+="four_gaudi"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
@@ -112,14 +144,13 @@ function generate_config(){
     # under Validate folder
     input_path=".github/scripts/benchmark.yaml"
     output_path="../GenAIEval/evals/benchmark/benchmark.yaml"
-    export TEST_OUTPUT_DIR="/home/sdp/benchmark_output/node_${num_gaudi}"
 
     if [ "$num_gaudi" -eq 1 ]; then
-        export USER_QUERIES="4, 8, 16, 32, 64, 128, 256, 512"
+        export USER_QUERIES="4, 8, 16, 640"
     elif [ "$num_gaudi" -eq 2 ]; then
-        export USER_QUERIES="4, 8, 16, 32, 64, 128, 256, 512, 1024"
+        export USER_QUERIES="4, 8, 16, 1280"
     elif [ "$num_gaudi" -eq 4 ]; then
-        export USER_QUERIES="4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096"
+        export USER_QUERIES="4, 8, 16, 2560"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
@@ -151,11 +182,11 @@ function wait_until_all_pod_ready() {
 
 function usage()
 {
-	echo "Usage: $0 --cordon --uncordon --installChatQnA --uninstallChatQnA --generate_config"
+	echo "Usage: $0 --cordon --uncordon --label --unlabel --installChatQnA --uninstallChatQnA --generate_config"
 }
 
 OPTIONS="-h"
-LONGOPTIONS="help,cordon,uncordon,installChatQnA,uninstallChatQnA,generate_config"
+LONGOPTIONS="help,cordon,uncordon,label,unlabel,installChatQnA,uninstallChatQnA,generate_config"
 
 if [ $# -lt 1 ]; then
 	usage
@@ -174,6 +205,12 @@ case "$1" in
         ;;
     --uncordon)
         uncordon
+        ;;
+    --label)
+        label $2
+        ;;
+    --unlabel)
+        unlabel
         ;;
     --installChatQnA)
         pushd $3

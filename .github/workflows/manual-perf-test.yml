@@ -67,16 +67,21 @@ jobs:
     steps:
       - name: Prepare benchmark configuration
         working-directory: ./Validation
+        env:
+          TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
         run: |
+          # export TEST_OUTPUT_DIR=/home/sdp/benchmark_output/node_${{ matrix.node_num }}
+          rm -rf $TEST_OUTPUT_DIR
           .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
           echo "uncordon=false" >> $GITHUB_ENV
           echo "uninstall=false" >> $GITHUB_ENV
+          echo "TEST_OUTPUT_DIR=$TEST_OUTPUT_DIR" >> $GITHUB_ENV
 
-      - name: K8s cordon
+      - name: K8s Label Nodes
         working-directory: ./Validation
         run: |
           echo "uncordon=true" >> $GITHUB_ENV
-          .github/scripts/perf_test.sh --cordon ${{ matrix.node_num }}
+          .github/scripts/perf_test.sh --label ${{ matrix.node_num }}
 
       - name: Install Workload
         working-directory: ./Validation
@@ -97,16 +102,26 @@ jobs:
           source stress_venv/bin/activate
           cd evals/benchmark
           python benchmark.py
+          tar -cvf node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR
+          
+      - uses: actions/upload-artifact@v4.3.4
+        with:
+          name: benchmark_result_${{ matrix.node_num }}node
+          path: node_${{ matrix.node_num }}.tar
+          overwrite: true
 
       - name: Uninstall Workload
-        if: ${{ fromJSON(env.uninstall) }}
+        if:  always()
         working-directory: ./Validation
         run: |
-          .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+          if $uninstall; then
+            .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+          fi
 
-      - name: K8s uncordon
-        if: ${{ fromJSON(env.uncordon) }}
+      - name: K8s Unlabel Nodes
+        if:  always()
         working-directory: ./Validation
         run: |
-          .github/scripts/perf_test.sh --uncordon
-      
+          if $uncordon; then
+            .github/scripts/perf_test.sh --unlabel
+          fi
