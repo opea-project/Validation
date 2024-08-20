@@ -91,7 +91,7 @@ Number of test requests for different scheduled node number:
 | 2 | 5 | 1280 |
 | 4 | 5 | 2560 |
 
-More detailed configuration can be found in configuration file [benchmark.yaml](../../.github/scripts/benchmark.yaml).
+More detailed configuration can be found in configuration file [benchmark.yaml](../.github/scripts/benchmark.yaml).
 
 ## Test Steps
 
@@ -227,5 +227,5 @@ All the test results will come to this folder `/home/sdp/benchmark_output/node_4
 # on k8s-master node
 cd GenAIExamples/ChatQnA/benchmark/single_gaudi
 kubectl delete -f .
-kubectl label nodes k8s-worker1 k8s-worker2 node-type-
+kubectl label nodes k8s-master k8s-worker1 k8s-worker2 k8s-worker3 node-type-
 ```

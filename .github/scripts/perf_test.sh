@@ -9,8 +9,9 @@ function label() {
     echo "Label the node."
 
     label_nums=$1
-    #cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
-    cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
+    cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
+    node_count=$(kubectl get nodes --no-headers | wc -l)
+    #cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
@@ -20,7 +21,7 @@ function label() {
 
     label_count=0
     for node_name in $cluster_node_names; do
-        if [ $node_name == $control_plane_node_name ] && [ $label_nums -lt 2 ]; then
+        if [ $node_name == $control_plane_node_name ] && [ $label_nums -lt $node_count ]; then
             continue
         fi
         kubectl label nodes $node_name $nodelabel
@@ -61,19 +62,19 @@ function installChatQnA() {
     fi
 
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/\(.*\):latest#image: opea/\1:${IMAGE_TAG}#g" {} \;
-    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/*#image: ${IMAGE_REPO}/opea/#g" {} \;
+    if [[ -n $IMAGE_REPO ]]; then
+        find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/*#image: ${IMAGE_REPO}/opea/#g" {} \;
+    fi
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(HF_TOKEN)#${HF_TOKEN}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
 
-    #sed -i.bak -e '/- --max-input-length/ {n; s/1024/2048/;}' $mpath/llm-dependency_run.yaml
-    #sed -i.bak -e '/- --max-total-tokens/ {n; s/2048/4096/;}' $mpath/llm-dependency_run.yaml
-
     #find $mpath/* -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
 
     kubectl apply -f $mpath/.
     wait_until_all_pod_ready $namespace 300s
+    sleep 120s
 }
 
 function uninstallChatQnA() {
