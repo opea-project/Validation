@@ -38,7 +38,7 @@ find . -name '*.yaml' -type f -exec sed -i "s#image: opea/\(.*\):latest#image: o
 
 # set the huggingface token
 HUGGINGFACE_TOKEN=<your token>
-find . -name '*.yaml' -type f -exec sed -i "s#\$(HF_TOKEN)#${HUGGINGFACE_TOKEN}#g" {} \;
+find . -name '*.yaml' -type f -exec sed -i "s#\${HF_TOKEN}#${HUGGINGFACE_TOKEN}#g" {} \;
 
 # set models
 LLM_MODEL_ID=Intel/neural-chat-7b-v3-3
