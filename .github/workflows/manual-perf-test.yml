@@ -99,14 +99,18 @@ jobs:
           python benchmark.py
 
       - name: Uninstall Workload
-        if: ${{ fromJSON(env.uninstall) }}
+        if:  always()
         working-directory: ./Validation
         run: |
-          .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+          if $uninstall; then
+            .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+          fi
 
       - name: K8s uncordon
-        if: ${{ fromJSON(env.uncordon) }}
+        if:  always()
         working-directory: ./Validation
         run: |
-          .github/scripts/perf_test.sh --uncordon
+          if $uncordon; then
+            .github/scripts/perf_test.sh --uncordon
+          fi
       
