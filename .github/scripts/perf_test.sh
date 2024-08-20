@@ -65,7 +65,7 @@ function installChatQnA() {
     if [[ -n $IMAGE_REPO ]]; then
         find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/*#image: ${IMAGE_REPO}/opea/#g" {} \;
     fi
-    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(HF_TOKEN)#${HF_TOKEN}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\${HF_TOKEN}#${HF_TOKEN}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
