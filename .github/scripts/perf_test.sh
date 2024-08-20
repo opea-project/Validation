@@ -53,11 +53,11 @@ function installChatQnA() {
     
     mpath="ChatQnA/benchmark/"
     if [ "$num_gaudi" -eq 1 ]; then
-        mpath += "single_gaudi"
+        mpath+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
-        mpath += "two_gaudi"
+        mpath+="two_gaudi"
     elif [ "$num_gaudi" -eq 4 ]; then
-        mpath += "four_gaudi"
+        mpath+="four_gaudi"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
@@ -90,11 +90,11 @@ function uninstallChatQnA() {
 
     path="ChatQnA/benchmark/"
     if [ "$num_gaudi" -eq 1 ]; then
-        path += "single_gaudi"
+        path+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
-        path += "two_gaudi"
+        path+="two_gaudi"
     elif [ "$num_gaudi" -eq 4 ]; then
-        path += "four_gaudi"
+        path+="four_gaudi"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
