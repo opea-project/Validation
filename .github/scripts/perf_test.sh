@@ -11,7 +11,7 @@ function label() {
     label_nums=$1
     cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
     #node_count=$(kubectl get nodes --no-headers | wc -l)
-    cluster_node_names="satg-opea-4node-3"
+    cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
@@ -21,7 +21,8 @@ function label() {
 
     label_count=0
     for node_name in $cluster_node_names; do
-        if [ "$node_name" == "$cluster_control_plane_name" ] && [ "$label_nums" -lt "$node_count" ]; then
+        #if [ "$node_name" == "$cluster_control_plane_name" ] && [ "$label_nums" -lt "$node_count" ]; then
+        if [ "$node_name" == "$cluster_control_plane_name" ] && [ "$label_nums" -lt 2 ]; then
             continue
         fi
         kubectl label nodes $node_name $nodelabel
