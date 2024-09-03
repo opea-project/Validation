@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: opea-project/GenAIEval
-          ref: ${{ inputs.opea_branch }}
+          #ref: ${{ inputs.opea_branch }}
           path: GenAIEval
 
       - name: Set up stress tool
