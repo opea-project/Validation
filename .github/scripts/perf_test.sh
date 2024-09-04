@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -xe
 nodelabel="node-type=chatqna-opea"
 nodeunlabel="node-type-"
 namespace="default"
@@ -76,6 +77,19 @@ function installChatQnA() {
     kubectl apply -f $mpath/.
     wait_until_all_pod_ready $namespace 300s
     sleep 120s
+
+    #Clean database
+    db_host=$(kubectl get svc vector-db -o jsonpath='{.spec.clusterIP}')
+    pip install redisvl
+    rvl index info --host ${db_host} -i rag-redis
+    rvl index delete --host ${db_host} -i rag-redis
+    #Prepare dataset
+    dataprep_host=$(kubectl get svc dataprep-svc -o jsonpath='{.spec.clusterIP}')
+    cd ../GenAIEval/evals/benchmark/data
+    curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
+     -H "Content-Type: multipart/form-data" \
+     -F "files=@./upload_file.txt" \
+     -F "chunk_size=3800"
 }
 
 function uninstallChatQnA() {

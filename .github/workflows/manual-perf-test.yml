@@ -42,7 +42,7 @@ jobs:
         run: |
           set -x
           nodenum_list=($(echo ${{ github.event.inputs.nodenums }} | tr ',' ' '))
-          nodenums=$(printf '%s\n' "${nodenum_list[@]}" | sort -u | jq -R '.' | jq -sc '.')
+          nodenums=$(printf '%s\n' "${nodenum_list[@]}" | sort | jq -R '.' | jq -sc '.')
           echo "nodenums=$nodenums" >> $GITHUB_OUTPUT
 
   setup-stress:
@@ -86,6 +86,7 @@ jobs:
         node_num: ${{ fromJSON(needs.get-build-matrix.outputs.nodenums) }}
     steps:
       - name: Prepare benchmark configuration
+        id: prepare_benchmark
         working-directory: ./Validation
         env:
           TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
@@ -95,6 +96,7 @@ jobs:
           .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
           echo "uncordon=false" >> $GITHUB_ENV
           echo "uninstall=false" >> $GITHUB_ENV
+          echo "randomstr=$(echo $RANDOM)" >> $GITHUB_OUTPUT
           echo "TEST_OUTPUT_DIR=$TEST_OUTPUT_DIR" >> $GITHUB_ENV
 
       - name: K8s Label Nodes
@@ -134,13 +136,13 @@ jobs:
           
       - uses: actions/upload-artifact@v4.3.4
         with:
-          name: ${{ matrix.node_num }}node_raw_data_tar
+          name: ${{ matrix.node_num }}node_raw_data_tar_${{ steps.prepare_benchmark.outputs.randomstr }}
           path: node_${{ matrix.node_num }}.tar
           overwrite: true
 
       - uses: actions/upload-artifact@v4.3.4
         with:
-          name: ${{ matrix.node_num }}node_testspec_yaml
+          name: ${{ matrix.node_num }}node_testspec_yaml_${{ steps.prepare_benchmark.outputs.randomstr }}
           path: 1_testspec.yaml
           overwrite: true
 
