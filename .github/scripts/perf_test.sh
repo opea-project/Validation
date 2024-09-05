@@ -5,7 +5,7 @@ nodelabel="node-type=chatqna-opea"
 nodeunlabel="node-type-"
 namespace="default"
 modelpath="/mnt/models"
-mode={MODE:-"tuned/with_rerank"}
+mode=${MODE:-"tuned/with_rerank"}
 
 function label() {
     echo "Label the node."
