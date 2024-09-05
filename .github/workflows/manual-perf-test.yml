@@ -17,21 +17,22 @@ on:
         required: false
         type: string
       tag:
-        default: "v0.9rc"
+        default: "v0.9"
         description: "Tag to apply to images"
         required: true
         type: string
       opea_branch:
-        default: "v0.9rc"
+        default: "opea_v0.9_oob_tests"
         description: "Branch to build images"
         required: true
         type: string
       runner:
+        default: "aise-perf"
         description: "Runner label"
         required: true
         type: string
       mode:
-        default: "tuned/with_rerank"
+        default: "oob/with_rerank"
         description: "Whether the test range is CI or CD"
         required: false
         type: string
