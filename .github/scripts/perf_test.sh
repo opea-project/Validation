@@ -46,7 +46,7 @@ function installChatQnA() {
     echo "Install ChatQnA."
     num_gaudi=$1
     
-    mpath="ChatQnA/benchmark/oob/with_rerank/"
+    mpath="ChatQnA/benchmark/oob/without_rerank/"
     if [ "$num_gaudi" -eq 1 ]; then
         mpath+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
@@ -96,7 +96,7 @@ function uninstallChatQnA() {
     echo "Uninstall ChatQnA."
     num_gaudi=$1
 
-    path="ChatQnA/benchmark/oob/with_rerank/"
+    path="ChatQnA/benchmark/oob/without_rerank/"
     if [ "$num_gaudi" -eq 1 ]; then
         path+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
