@@ -17,18 +17,24 @@ on:
         required: false
         type: string
       tag:
-        default: "v0.9rc"
+        default: "1.0"
         description: "Tag to apply to images"
         required: true
         type: string
       opea_branch:
-        default: "v0.9rc"
+        default: "v1.0rc"
         description: "Branch to build images"
         required: true
         type: string
       runner:
+        default: "aise-perf"
         description: "Runner label"
         required: true
+        type: string
+      mode:
+        default: "oob/with_rerank"
+        description: "Whether the test range is CI or CD"
+        required: false
         type: string
 
 jobs:
@@ -114,6 +120,7 @@ jobs:
           LLM_MODEL_ID: "Intel/neural-chat-7b-v3-3"
           EMBEDDING_MODEL_ID: "BAAI/bge-base-en-v1.5"
           RERANK_MODEL_ID: "BAAI/bge-reranker-base"
+          MODE: ${{ inputs.mode }}
         run: |
           echo "uninstall=true" >> $GITHUB_ENV
           .github/scripts/perf_test.sh --installChatQnA ${{ matrix.node_num }} ../GenAIExamples
@@ -149,6 +156,8 @@ jobs:
       - name: Uninstall Workload
         if:  always()
         working-directory: ./Validation
+        env:
+          MODE: ${{ inputs.mode }}
         run: |
           if $uninstall; then
             .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples

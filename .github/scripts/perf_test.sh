@@ -5,6 +5,7 @@ nodelabel="node-type=chatqna-opea"
 nodeunlabel="node-type-"
 namespace="default"
 modelpath="/mnt/models"
+mode=${MODE:-"tuned/with_rerank"}
 
 function label() {
     echo "Label the node."
@@ -46,7 +47,7 @@ function installChatQnA() {
     echo "Install ChatQnA."
     num_gaudi=$1
     
-    mpath="ChatQnA/benchmark/"
+    mpath="ChatQnA/benchmark/$mode/"
     if [ "$num_gaudi" -eq 1 ]; then
         mpath+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
@@ -86,17 +87,24 @@ function installChatQnA() {
     #Prepare dataset
     dataprep_host=$(kubectl get svc dataprep-svc -o jsonpath='{.spec.clusterIP}')
     cd ../GenAIEval/evals/benchmark/data
-    curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
-     -H "Content-Type: multipart/form-data" \
-     -F "files=@./upload_file.txt" \
-     -F "chunk_size=3800"
+    if [[ $mode == *"with_rerank" ]]; then
+        curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
+           -H "Content-Type: multipart/form-data" \
+           -F "files=@./upload_file.txt" \
+           -F "chunk_size=3800"
+    else
+        curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
+           -H "Content-Type: multipart/form-data" \
+           -F "files=@./upload_file_no_rerank.txt"
+    fi
+
 }
 
 function uninstallChatQnA() {
     echo "Uninstall ChatQnA."
     num_gaudi=$1
 
-    path="ChatQnA/benchmark/"
+    path="ChatQnA/benchmark/${mode}/"
     if [ "$num_gaudi" -eq 1 ]; then
         path+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
