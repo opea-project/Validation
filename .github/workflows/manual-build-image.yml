@@ -30,11 +30,20 @@ on:
         description: "Runner label"
         required: true
         type: string
+      build-chatqna-images:
+        default: false
+        required: false
+        type: boolean
+      build-extra-images:
+        default: true
+        required: false
+        type: boolean
 
 
 jobs:
   build-images:
     runs-on: "${{ inputs.runner }}"
+    if: ${{ fromJSON(inputs.build-chatqna-images) }}
     steps:
       - name: Clean Up Working Directory
         run: sudo rm -rf ${{github.workspace}}/*

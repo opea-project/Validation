@@ -2,30 +2,17 @@
 
 This is the test spec for OPEA v0.9. 
 
-## Hardware and software spec
+## Hardware requirement
 
-The test runs on 4 same Gaudi nodes with below hardware and software installed:
+The test runs on 4 Gaudi nodes. Each node has 8 GPU accelerators.
 
-| Hardware   | Type         |
-| ---------- | ------------------ |
-| CPU | Intel ICX 8368 2Socket 38 Cores  |
-| GPU | 8 Gaudi2 AI Training Accelerators |
-| Memory | 1024GB |
-
-| Software   | Version         |
-| ---------- | ------------------ |
-| OS | Ubuntu 22.04.4 LTS  |
-| Kernel | 5.15.0-113-generic |
-| Kubernetes | v1.29.6 |
-| Containerd | 1.7.19 |
-| Calico | v3.28.0 |
-
-## K8s preparation
+### K8s preparation
 
 4 Gaudi nodes compose a 4-node Kubernetes cluster.  K8s cluster has below prerequisites:
 - Every node has direct internet access
 - In master node, kubectl is installed and have the access to K8s cluster
 - In master node, Python 3.8+ is installed to run stress tool.
+- In every node, there is a local folder "/mnt/models" which will be mounted to pods as model path.
 
 ```
 $ kubectl get nodes
@@ -36,7 +23,33 @@ k8s-work2           Ready    <none>          35d   v1.29.6
 k8s-work3           Ready    <none>          35d   v1.29.6
 ```
 
-## Stress tool preparation
+### Manifest preparation
+
+We have created the [BKC manifest](https://github.com/opea-project/GenAIExamples/tree/main/ChatQnA/benchmark) for single node, two nodes and four nodes K8s cluster. In order to apply, we need to check out and configure some values.
+
+```
+# on k8s-master node
+git clone https://github.com/opea-project/GenAIExamples.git
+cd GenAIExamples/ChatQnA/benchmark
+
+# replace the image tag from latest to v0.9 since we want to test with v0.9 release
+IMAGE_TAG=v0.9
+find . -name '*.yaml' -type f -exec sed -i "s#image: opea/\(.*\):latest#image: opea/\1:${IMAGE_TAG}#g" {} \;
+
+# set the huggingface token
+HUGGINGFACE_TOKEN=<your token>
+find . -name '*.yaml' -type f -exec sed -i "s#\${HF_TOKEN}#${HUGGINGFACE_TOKEN}#g" {} \;
+
+# set models
+LLM_MODEL_ID=Intel/neural-chat-7b-v3-3
+EMBEDDING_MODEL_ID=BAAI/bge-base-en-v1.5
+RERANK_MODEL_ID=BAAI/bge-reranker-base
+find . -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
+find . -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
+find . -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
+```
+
+### Stress tool preparation
 
 The test uses the [stress tool](https://github.com/opea-project/GenAIEval/tree/main/evals/benchmark) to do performance test. We need to set up stress tool at the master node of Kubernetes which is k8s-master.
 
@@ -49,7 +62,7 @@ source stress_venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Test configurations
+## Test Configurations
 
 Workload configuration:
 
@@ -72,42 +85,52 @@ Benchmark parameters
 | LLM output tokens | 128 |
 
 Number of test requests for different scheduled node number:
-| Node account | Value |
-| ---------- | ------------------ |
-| 1 | "4, 8, 16, 32, 64, 128, 256, 512" |
-| 2 | "4, 8, 16, 32, 64, 128, 256, 512, 1024" |
-| 4 | "4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096" |
+| Node account | Concurrency | Query number |
+| ----- | -------- | -------- |
+| 1 | 128 | 640 |
+| 2 | 256 | 1280 |
+| 4 | 512 | 2560 |
 
-More detailed configuration can be found in configuration file "(benchmark.yaml)[../../.github/scripts/benchmark.yaml]"
+More detailed configuration can be found in configuration file [benchmark.yaml](../.github/scripts/benchmark.yaml).
+
+## Test Steps
 
 ### Single node test
 
 #### 1. Preparation
 
-We mark three node unschedulable to get a single node K8s cluster by:
+We add label to 1 Kubernetes node to make sure all pods are scheduled to this node:
 ```
-kubectl cordon k8s-worker1 k8s-worker2 k8s-worker3
+kubectl label nodes k8s-worker1 node-type=chatqna-opea
 ```
 
 #### 2. Install ChatQnA
 
-We have created the [BKC manifest](https://github.com/opea-project/GenAIExamples/tree/main/ChatQnA/benchmark/single_gaudi) for single node K8s cluster. We need to check out and apply to K8s.
+Go to [BKC manifest](https://github.com/opea-project/GenAIExamples/tree/main/ChatQnA/benchmark/single_gaudi) and apply to K8s.
 
 ```
 # on k8s-master node
-git clone https://github.com/opea-project/GenAIExamples.git
 cd GenAIExamples/ChatQnA/benchmark/single_gaudi
 kubectl apply -f .
 ```
 #### 3. Run tests
 
-TODO: need to confirm
+We copy the configuration file [benchmark.yaml](../../.github/scripts/benchmark.yaml) to `GenAIEval/evals/benchmark/benchmark.yaml` and config `test_suite_config.user_queries` and `test_suite_config.test_output_dir`.
+
 ```
-python stress_benchmark.py -f data.txt -s localhost:8888 -c 50 -d 30m -t chatqna
+export USER_QUERIES="4, 8, 16, 640"
+export TEST_OUTPUT_DIR="/home/sdp/benchmark_output/node_1"
+envsubst < Validation/.github/scripts/benchmark.yaml > GenAIEval/evals/benchmark/benchmark.yaml
+```
+
+And then run the benchmark tool by:
+```
+cd GenAIEval/evals/benchmark
+python benchmark.py
 ```
 #### 4. Data collection
 
-TBD
+All the test results will come to this folder `/home/sdp/benchmark_output/node_1` configured by the environment variable `TEST_OUTPUT_DIR` in previous steps.
 
 #### 5. Clean up
 
@@ -115,45 +138,94 @@ TBD
 # on k8s-master node
 cd GenAIExamples/ChatQnA/benchmark/single_gaudi
 kubectl delete -f .
-kubectl uncordon k8s-worker1 k8s-worker2 k8s-worker3
+kubectl label nodes k8s-worker1 node-type-
 ```
-
 ### Two node test
 
 #### 1. Preparation
 
+We add label to 2 Kubernetes node to make sure all pods are scheduled to this node:
 ```
-kubectl cordon k8s-worker2 k8s-worker3
+kubectl label nodes k8s-worker1 k8s-worker2 node-type=chatqna-opea
 ```
 
 #### 2. Install ChatQnA
 
-We have created the [BKC manifest](https://github.com/opea-project/GenAIExamples/tree/main/ChatQnA/benchmark/two_gaudi) for two node K8s cluster. We need to check out and apply to K8s.
+Go to [BKC manifest](https://github.com/opea-project/GenAIExamples/tree/main/ChatQnA/benchmark/two_gaudi) and apply to K8s.
 ```
 # on k8s-master node
-git clone https://github.com/opea-project/GenAIExamples.git
 cd GenAIExamples/ChatQnA/benchmark/two_gaudi
 kubectl apply -f .
 ```
 #### 3. Run tests
 
-TODO: need to confirm
+We copy the configuration file [benchmark.yaml](../../.github/scripts/benchmark.yaml) to `GenAIEval/evals/benchmark/benchmark.yaml` and config `test_suite_config.user_queries` and `test_suite_config.test_output_dir`.
+
 ```
-python stress_benchmark.py -f data.txt -s localhost:8888 -c 50 -d 30m -t chatqna
+export USER_QUERIES="4, 8, 16, 1280"
+export TEST_OUTPUT_DIR="/home/sdp/benchmark_output/node_2"
+envsubst < Validation/.github/scripts/benchmark.yaml > GenAIEval/evals/benchmark/benchmark.yaml
 ```
+
+And then run the benchmark tool by:
+```
+cd GenAIEval/evals/benchmark
+python benchmark.py
+```
+
 #### 4. Data collection
 
-TBD
-
+All the test results will come to this folder `/home/sdp/benchmark_output/node_2` configured by the environment variable `TEST_OUTPUT_DIR` in previous steps.
 
 #### 5. Clean up
 
 ```
-cd GenAIExamples/ChatQnA/benchmark/two_gaudi
+# on k8s-master node
 kubectl delete -f .
-kubectl uncordon k8s-worker2 k8s-worker3
+kubectl label nodes k8s-worker1 k8s-worker2 node-type-
 ```
-
 ### Four node test
 
-TBD
+#### 1. Preparation
+
+We add label to 4 Kubernetes node to make sure all pods are scheduled to this node:
+```
+kubectl label nodes k8s-master k8s-worker1 k8s-worker2 k8s-worker3 node-type=chatqna-opea
+```
+
+#### 2. Install ChatQnA
+
+Go to [BKC manifest](https://github.com/opea-project/GenAIExamples/tree/main/ChatQnA/benchmark/four_gaudi) and apply to K8s.
+```
+# on k8s-master node
+cd GenAIExamples/ChatQnA/benchmark/four_gaudi
+kubectl apply -f .
+```
+#### 3. Run tests
+
+We copy the configuration file [benchmark.yaml](../../.github/scripts/benchmark.yaml) to `GenAIEval/evals/benchmark/benchmark.yaml` and config `test_suite_config.user_queries` and `test_suite_config.test_output_dir`.
+
+```
+export USER_QUERIES="4, 8, 16, 2560"
+export TEST_OUTPUT_DIR="/home/sdp/benchmark_output/node_4"
+envsubst < Validation/.github/scripts/benchmark.yaml > GenAIEval/evals/benchmark/benchmark.yaml
+```
+
+And then run the benchmark tool by:
+```
+cd GenAIEval/evals/benchmark
+python benchmark.py
+```
+
+#### 4. Data collection
+
+All the test results will come to this folder `/home/sdp/benchmark_output/node_4` configured by the environment variable `TEST_OUTPUT_DIR` in previous steps.
+
+#### 5. Clean up
+
+```
+# on k8s-master node
+cd GenAIExamples/ChatQnA/benchmark/single_gaudi
+kubectl delete -f .
+kubectl label nodes k8s-master k8s-worker1 k8s-worker2 k8s-worker3 node-type-
+```

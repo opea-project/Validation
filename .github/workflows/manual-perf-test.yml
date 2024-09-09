@@ -1,0 +1,172 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+name: Run performance test on a Kubernetes cluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      nodenums:
+        default: "1,2,4"
+        description: "List of test node numbers, e.g., 1,2,4"
+        required: true
+        type: string
+      registry:
+        default: ""
+        description: "Registry to store images,e.g., docker.io, default is empty"
+        required: false
+        type: string
+      tag:
+        default: "1.0"
+        description: "Tag to apply to images"
+        required: true
+        type: string
+      opea_branch:
+        default: "v1.0rc"
+        description: "Branch to build images"
+        required: true
+        type: string
+      runner:
+        default: "aise-perf"
+        description: "Runner label"
+        required: true
+        type: string
+      mode:
+        default: "oob/with_rerank"
+        description: "Whether the test range is CI or CD"
+        required: false
+        type: string
+
+jobs:
+  get-build-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      nodenums: ${{ steps.get-services.outputs.nodenums }}
+    steps:
+      - name: Get test Services
+        id: get-services
+        run: |
+          set -x
+          nodenum_list=($(echo ${{ github.event.inputs.nodenums }} | tr ',' ' '))
+          nodenums=$(printf '%s\n' "${nodenum_list[@]}" | sort | jq -R '.' | jq -sc '.')
+          echo "nodenums=$nodenums" >> $GITHUB_OUTPUT
+
+  setup-stress:
+    needs: [get-build-matrix]
+    runs-on: "${{ inputs.runner }}"
+    steps:
+      - name: Clean Up Working Directory
+        run: sudo rm -rf ${{github.workspace}}/*
+
+      - name: Checkout out GenAIEval
+        uses: actions/checkout@v4
+        with:
+          path: Validation
+
+      - name: Checkout out GenAIEval
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIEval
+          #ref: ${{ inputs.opea_branch }}
+          path: GenAIEval
+
+      - name: Set up stress tool
+        run: |
+          cd GenAIEval
+          python3 -m venv stress_venv
+          source stress_venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Checkout out GenAIExamples
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIExamples
+          ref: ${{ inputs.opea_branch }}
+          path: GenAIExamples
+
+  run-benchmark:
+    needs: [get-build-matrix, setup-stress]
+    runs-on: "${{ inputs.runner }}"
+    strategy:
+      matrix:
+        node_num: ${{ fromJSON(needs.get-build-matrix.outputs.nodenums) }}
+    steps:
+      - name: Prepare benchmark configuration
+        id: prepare_benchmark
+        working-directory: ./Validation
+        env:
+          TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
+        run: |
+          # export TEST_OUTPUT_DIR=/home/sdp/benchmark_output/node_${{ matrix.node_num }}
+          rm -rf $TEST_OUTPUT_DIR
+          .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
+          echo "uncordon=false" >> $GITHUB_ENV
+          echo "uninstall=false" >> $GITHUB_ENV
+          echo "randomstr=$(echo $RANDOM)" >> $GITHUB_OUTPUT
+          echo "TEST_OUTPUT_DIR=$TEST_OUTPUT_DIR" >> $GITHUB_ENV
+
+      - name: K8s Label Nodes
+        working-directory: ./Validation
+        run: |
+          echo "uncordon=true" >> $GITHUB_ENV
+          .github/scripts/perf_test.sh --label ${{ matrix.node_num }}
+
+      - name: Install Workload
+        working-directory: ./Validation
+        env:
+          IMAGE_REPO: ${{ inputs.registry }}
+          IMAGE_TAG: ${{ inputs.tag }}
+          HF_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          LLM_MODEL_ID: "Intel/neural-chat-7b-v3-3"
+          EMBEDDING_MODEL_ID: "BAAI/bge-base-en-v1.5"
+          RERANK_MODEL_ID: "BAAI/bge-reranker-base"
+          MODE: ${{ inputs.mode }}
+        run: |
+          echo "uninstall=true" >> $GITHUB_ENV
+          .github/scripts/perf_test.sh --installChatQnA ${{ matrix.node_num }} ../GenAIExamples
+
+      - name: Stress Test
+        working-directory: ./GenAIEval
+        run: |
+          source stress_venv/bin/activate
+          cd evals/benchmark
+          python benchmark.py
+          tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR
+          
+          last_test_folder=$(ls -td "$TEST_OUTPUT_DIR"/*/ | head -n 1)
+          testspec_file=${last_test_folder}1_testspec.yaml
+          cp $testspec_file ${{ github.workspace }}
+
+      - name: Print Test Result
+        run: |
+          cat 1_testspec.yaml
+          
+      - uses: actions/upload-artifact@v4.3.4
+        with:
+          name: ${{ matrix.node_num }}node_raw_data_tar_${{ steps.prepare_benchmark.outputs.randomstr }}
+          path: node_${{ matrix.node_num }}.tar
+          overwrite: true
+
+      - uses: actions/upload-artifact@v4.3.4
+        with:
+          name: ${{ matrix.node_num }}node_testspec_yaml_${{ steps.prepare_benchmark.outputs.randomstr }}
+          path: 1_testspec.yaml
+          overwrite: true
+
+      - name: Uninstall Workload
+        if:  always()
+        working-directory: ./Validation
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          if $uninstall; then
+            .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+          fi
+
+      - name: K8s Unlabel Nodes
+        if:  always()
+        working-directory: ./Validation
+        run: |
+          if $uncordon; then
+            .github/scripts/perf_test.sh --unlabel
+          fi
