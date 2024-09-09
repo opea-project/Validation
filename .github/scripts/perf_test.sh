@@ -72,20 +72,25 @@ function installChatQnA() {
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
+    #find $mpath/ -name '*.yaml' -type f -exec sed -i "s#namespace: default#namespace: ${namespace}#g" {} \;
+    #find $mpath/ -name '*.yaml' -type f -exec sed -i "s#.default.svc#.${namespace}.svc#g" {} \;
 
-    #find $mpath/* -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
-
+    if kubectl get namespace "$namespace" > /dev/null 2>&1; then
+        echo "Namespace '$namespace' already exists."
+    else
+        kubectl create ns $namespace
+    fi
     kubectl apply -f $mpath/.
     wait_until_all_pod_ready $namespace 300s
     sleep 120s
 
     #Clean database
-    db_host=$(kubectl get svc vector-db -o jsonpath='{.spec.clusterIP}')
+    db_host=$(kubectl -n $namespace get svc vector-db -o jsonpath='{.spec.clusterIP}')
     pip install redisvl
     rvl index info --host ${db_host} -i rag-redis
     rvl index delete --host ${db_host} -i rag-redis
     #Prepare dataset
-    dataprep_host=$(kubectl get svc dataprep-svc -o jsonpath='{.spec.clusterIP}')
+    dataprep_host=$(kubectl -n $namespace get svc dataprep-svc -o jsonpath='{.spec.clusterIP}')
     cd ../GenAIEval/evals/benchmark/data
     if [[ $mode == *"with_rerank" ]]; then
         curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
@@ -120,6 +125,9 @@ function uninstallChatQnA() {
         exit 1
     fi
     kubectl delete -f $path/.
+    if [ "$namespace" != "default" ]; then
+        kubectl delete ns $namespace
+    fi
 }
 
 function generate_config(){
