@@ -117,8 +117,10 @@ jobs:
         run: |
           export TAG=acc
           cd ${{ github.workspace }}/GenAIExamples/ChatQnA/tests/
-          sed -i '/stop_docker/c\# stop_docker' test_chatqna_on_gaudi.sh
-          sed -i '/echo y \| docker system prune/c\    # echo y | docker system prune' test_chatqna_on_gaudi.sh
+          # sed -i '/stop_docker/c\# stop_docker' test_chatqna_on_gaudi.sh
+          # sed -i '/echo y \| docker system prune/c\    # echo y | docker system prune' test_chatqna_on_gaudi.sh
+          sed -i '/echo y \| docker system prune/c\# echo y | docker system prune\n# Previous line' test_chatqna_on_gaudi.sh
+
           if [[ "${dataset}" == "zh" ]]; then
             sed -i 's/export EMBEDDING_MODEL_ID="BAAI\/bge-base-en-v1.5"/export EMBEDDING_MODEL_ID="BAAI\/bge-base-zh-v1.5"/' test_chatqna_on_gaudi.sh
             sed -i 's/export LLM_MODEL_ID="Intel\/neural-chat-7b-v3-3"/export LLM_MODEL_ID="Qwen\/Qwen2-7B-Instruct"/' test_chatqna_on_gaudi.sh
