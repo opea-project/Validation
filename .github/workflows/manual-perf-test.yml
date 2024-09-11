@@ -13,7 +13,7 @@ on:
         type: string
       registry:
         default: ""
-        description: "Registry to store images,e.g., docker.io, default is empty"
+        description: "Registry to store images, empty string means docker.io, default is empty"
         required: false
         type: string
       tag:
@@ -23,18 +23,23 @@ on:
         type: string
       opea_branch:
         default: "v1.0rc"
-        description: "Branch to build images"
-        required: true
-        type: string
-      runner:
-        default: "aise-perf"
-        description: "Runner label"
+        description: "GenAIExamples branch to test manifests"
         required: true
         type: string
       mode:
         default: "oob/with_rerank"
-        description: "Whether the test range is CI or CD"
+        description: "The folder under GenAIExamples/ChatQnA/benchmark/<mode>/*_node"
         required: false
+        type: string
+      cleanup:
+        default: "true"
+        description: "Whether to clean up the pods and the labels"
+        required: true
+        type: boolean
+      runner:
+        default: "aise-perf"
+        description: "Runner label"
+        required: true
         type: string
 
 jobs:
@@ -154,7 +159,7 @@ jobs:
           overwrite: true
 
       - name: Uninstall Workload
-        if:  always()
+        if: ${{ fromJSON(inputs.cleanup) }}
         working-directory: ./Validation
         env:
           MODE: ${{ inputs.mode }}
@@ -164,7 +169,7 @@ jobs:
           fi
 
       - name: K8s Unlabel Nodes
-        if:  always()
+        if: ${{ fromJSON(inputs.cleanup) }}
         working-directory: ./Validation
         run: |
           if $uncordon; then
