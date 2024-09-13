@@ -56,8 +56,8 @@ jobs:
 
       - name: Clone required Repo
         run: |
-          cd ${{ github.workspace }}/${{ inputs.workload }}/docker
-          docker_compose_path=${{ github.workspace }}/${{ inputs.workload }}/docker/docker_build_compose.yaml
+          cd ${{ github.workspace }}/${{ inputs.workload }}/docker_image_build
+          docker_compose_path=${{ github.workspace }}/${{ inputs.workload }}/docker_image_build/build.yaml
           if [[ $(grep -c "tei-gaudi:" ${docker_compose_path}) != 0 ]]; then
               git clone https://github.com/huggingface/tei-gaudi.git
           fi
@@ -70,7 +70,7 @@ jobs:
       - name: Build Image
         uses: opea-project/validation/actions/image-build@main
         with:
-          work_dir: ${{ github.workspace }}/${{ inputs.workload }}/docker
-          docker_compose_path: ${{ github.workspace }}/${{ inputs.workload }}/docker/docker_build_compose.yaml
+          work_dir: ${{ github.workspace }}/${{ inputs.workload }}/docker_image_build
+          docker_compose_path: ${{ github.workspace }}/${{ inputs.workload }}/docker_image_build/build.yaml
           registry: ${{ inputs.registry }}/opea
           tag: ${{ inputs.tag }}
