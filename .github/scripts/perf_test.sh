@@ -54,6 +54,8 @@ function installChatQnA() {
         mpath+="two_gaudi"
     elif [ "$num_gaudi" -eq 4 ]; then
         mpath+="four_gaudi"
+    elif [ "$num_gaudi" -eq 8 ]; then
+        mpath+="eight_gaudi"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
@@ -72,6 +74,7 @@ function installChatQnA() {
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(LLM_MODEL_ID)#${LLM_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(EMBEDDING_MODEL_ID)#${EMBEDDING_MODEL_ID}#g" {} \;
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\$(RERANK_MODEL_ID)#${RERANK_MODEL_ID}#g" {} \;
+    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
     #find $mpath/ -name '*.yaml' -type f -exec sed -i "s#namespace: default#namespace: ${namespace}#g" {} \;
     #find $mpath/ -name '*.yaml' -type f -exec sed -i "s#.default.svc#.${namespace}.svc#g" {} \;
 
@@ -116,6 +119,8 @@ function uninstallChatQnA() {
         path+="two_gaudi"
     elif [ "$num_gaudi" -eq 4 ]; then
         path+="four_gaudi"
+    elif [ "$num_gaudi" -eq 8 ]; then
+        path+="eight_gaudi"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
@@ -143,6 +148,8 @@ function generate_config(){
         export USER_QUERIES="4, 8, 16, 1280, 1280, 1280"
     elif [ "$num_gaudi" -eq 4 ]; then
         export USER_QUERIES="4, 8, 16, 2560, 2560, 2560"
+    elif [ "$num_gaudi" -eq 8 ]; then
+        export USER_QUERIES="4, 8, 16, 5120, 5120, 5120"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1

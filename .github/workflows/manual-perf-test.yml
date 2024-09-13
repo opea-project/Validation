@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       nodenums:
-        default: "1,2,4"
-        description: "List of test node numbers, e.g., 1,2,4"
+        default: "1,2,4,8"
+        description: "List of test node numbers, e.g., 1,2,4,8"
         required: true
         type: string
       registry:
@@ -32,7 +32,7 @@ on:
         required: false
         type: string
       cleanup:
-        default: "true"
+        default: true
         description: "Whether to clean up the pods and the labels"
         required: true
         type: boolean
@@ -41,6 +41,9 @@ on:
         description: "Runner label"
         required: true
         type: string
+
+concurrency:
+  group: ${{ github.workflow }}
 
 jobs:
   get-build-matrix:
