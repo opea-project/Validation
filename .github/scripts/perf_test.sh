@@ -138,11 +138,11 @@ function generate_config(){
     output_path="../GenAIEval/evals/benchmark/benchmark.yaml"
 
     if [ "$num_gaudi" -eq 1 ]; then
-        export USER_QUERIES="4, 8, 16, 640"
+        export USER_QUERIES="4, 8, 16, 640, 640, 640"
     elif [ "$num_gaudi" -eq 2 ]; then
-        export USER_QUERIES="4, 8, 16, 1280"
+        export USER_QUERIES="4, 8, 16, 1280, 1280, 1280"
     elif [ "$num_gaudi" -eq 4 ]; then
-        export USER_QUERIES="4, 8, 16, 2560"
+        export USER_QUERIES="4, 8, 16, 2560, 2560, 2560"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1

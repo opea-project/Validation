@@ -166,6 +166,7 @@ jobs:
         run: |
           if $uninstall; then
             .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+            sleep 120s
           fi
 
       - name: K8s Unlabel Nodes
