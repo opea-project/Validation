@@ -11,9 +11,9 @@ function label() {
     echo "Label the node."
 
     label_nums=$1
-    cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
+    # cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
     node_count=$(kubectl get nodes --no-headers | wc -l)
-    #cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
+    cluster_node_names="opea-temp-16node-0 opea-temp-16node-1 opea-temp-16node-2 opea-temp-16node-3 opea-temp-16node-4 opea-temp-16node-5 opea-temp-16node-6 opea-temp-16node-7"
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
