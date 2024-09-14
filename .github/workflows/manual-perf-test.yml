@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       nodenums:
-        default: "8"
+        default: "1,2,4,8"
         description: "List of test node numbers, e.g., 1,2,4,8"
         required: true
         type: string
