@@ -42,9 +42,6 @@ on:
         required: true
         type: string
 
-concurrency:
-  group: ${{ github.workflow }}
-
 jobs:
   get-build-matrix:
     runs-on: ubuntu-latest
@@ -59,23 +56,32 @@ jobs:
           nodenums=$(printf '%s\n' "${nodenum_list[@]}" | sort | jq -R '.' | jq -sc '.')
           echo "nodenums=$nodenums" >> $GITHUB_OUTPUT
 
-  setup-stress:
+  run-benchmark:
     needs: [get-build-matrix]
     runs-on: "${{ inputs.runner }}"
+    strategy:
+      matrix:
+        node_num: ${{ fromJSON(needs.get-build-matrix.outputs.nodenums) }}
     steps:
       - name: Clean Up Working Directory
         run: sudo rm -rf ${{github.workspace}}/*
 
-      - name: Checkout out GenAIEval
+      - name: Checkout out Validation
         uses: actions/checkout@v4
         with:
           path: Validation
+
+      - name: Checkout out GenAIExamples
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIExamples
+          ref: ${{ inputs.opea_branch }}
+          path: GenAIExamples
 
       - name: Checkout out GenAIEval
         uses: actions/checkout@v4
         with:
           repository: opea-project/GenAIEval
-          #ref: ${{ inputs.opea_branch }}
           path: GenAIEval
 
       - name: Set up stress tool
@@ -85,20 +91,6 @@ jobs:
           source stress_venv/bin/activate
           pip install -r requirements.txt
 
-      - name: Checkout out GenAIExamples
-        uses: actions/checkout@v4
-        with:
-          repository: opea-project/GenAIExamples
-          ref: ${{ inputs.opea_branch }}
-          path: GenAIExamples
-
-  run-benchmark:
-    needs: [get-build-matrix, setup-stress]
-    runs-on: "${{ inputs.runner }}"
-    strategy:
-      matrix:
-        node_num: ${{ fromJSON(needs.get-build-matrix.outputs.nodenums) }}
-    steps:
       - name: Prepare benchmark configuration
         id: prepare_benchmark
         working-directory: ./Validation
