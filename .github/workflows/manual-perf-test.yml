@@ -56,27 +56,8 @@ jobs:
           nodenums=$(printf '%s\n' "${nodenum_list[@]}" | sort | jq -R '.' | jq -sc '.')
           echo "nodenums=$nodenums" >> $GITHUB_OUTPUT
 
-  setup-stress:
-    runs-on: "${{ inputs.runner }}"
-    steps:
-      - name: Clean Up Working Directory
-        run: sudo rm -rf ${{github.workspace}}/*
-
-      - name: Checkout out GenAIEval
-        uses: actions/checkout@v4
-        with:
-          repository: opea-project/GenAIEval
-          path: GenAIEval
-
-      - name: Set up stress tool
-        run: |
-          cd GenAIEval
-          python3 -m venv stress_venv
-          source stress_venv/bin/activate
-          pip install -r requirements.txt
-
   run-benchmark:
-    needs: [get-build-matrix, setup-stress]
+    needs: [get-build-matrix]
     runs-on: "${{ inputs.runner }}"
     strategy:
       matrix:
@@ -96,6 +77,19 @@ jobs:
           repository: opea-project/GenAIExamples
           ref: ${{ inputs.opea_branch }}
           path: GenAIExamples
+
+      - name: Checkout out GenAIEval
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIEval
+          path: GenAIEval
+
+      - name: Set up stress tool
+        run: |
+          cd GenAIEval
+          python3 -m venv stress_venv
+          source stress_venv/bin/activate
+          pip install -r requirements.txt
 
       - name: Prepare benchmark configuration
         id: prepare_benchmark
