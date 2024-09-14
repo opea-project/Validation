@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       nodenums:
-        default: "1,2,4,8"
+        default: "8"
         description: "List of test node numbers, e.g., 1,2,4,8"
         required: true
         type: string
@@ -17,17 +17,17 @@ on:
         required: false
         type: string
       tag:
-        default: "1.0"
+        default: "1.0rc"
         description: "Tag to apply to images"
         required: true
         type: string
       opea_branch:
-        default: "v1.0rc"
+        default: "v1.0_8nodes"
         description: "GenAIExamples branch to test manifests"
         required: true
         type: string
       mode:
-        default: "oob/with_rerank"
+        default: "oob_no_wrapper/without_rerank"
         description: "The folder under GenAIExamples/ChatQnA/benchmark/<mode>/*_node"
         required: false
         type: string
@@ -37,7 +37,7 @@ on:
         required: true
         type: boolean
       runner:
-        default: "aise-perf"
+        default: "opea-8node"
         description: "Runner label"
         required: true
         type: string
