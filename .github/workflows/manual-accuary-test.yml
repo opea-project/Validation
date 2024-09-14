@@ -117,16 +117,15 @@ jobs:
         run: |
           export IMAGE_TAG=acc
           cd ${{ github.workspace }}/GenAIExamples/ChatQnA/tests/
-          # sed -i '/stop_docker/c\# stop_docker' test_compose_on_gaudi.sh
-          # sed -i '/echo y \| docker system prune/c\    # echo y | docker system prune' test_compose_on_gaudi.sh
-          sed -i '/echo y \| docker system prune/c\# echo y | docker system prune\n# Previous line' test_compose_on_gaudi.sh
-
           if [[ "${dataset}" == "zh" ]]; then
             sed -i 's/export EMBEDDING_MODEL_ID="BAAI\/bge-base-en-v1.5"/export EMBEDDING_MODEL_ID="BAAI\/bge-base-zh-v1.5"/' test_compose_on_gaudi.sh
             sed -i 's/export LLM_MODEL_ID="Intel\/neural-chat-7b-v3-3"/export LLM_MODEL_ID="Qwen\/Qwen2-7B-Instruct"/' test_compose_on_gaudi.sh
           fi
-          cat test_compose_on_gaudi.sh
-          bash test_compose_on_gaudi.sh
+          head -n "$(($(wc -l < test_compose_on_gaudi.sh) - 10))" "test_compose_on_gaudi.sh" > temp_file.sh
+          echo "}" >> temp_file.sh
+          echo "main" >> temp_file.sh
+          cat temp_file.sh
+          bash temp_file.sh
 
       - name: Launch Service of LLM-as-a-Judge
         shell: bash
