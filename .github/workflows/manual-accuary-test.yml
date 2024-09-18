@@ -151,8 +151,9 @@ jobs:
           dataset: ${{ matrix.dataset }}
         run: |
           cd ${{ github.workspace }}/GenAIEval/
-          PATH=$(dirname "$PWD")
-          export PYTHONPATH=$PYTHONPATH:$PATH
+          DPATH=$(dirname "$PWD")
+          export PYTHONPATH=$PYTHONPATH:$DPATH
+          export PATH=$PATH:/bin:/usr/bin
           cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
           if [[ "${dataset}" == "en" ]]; then
             python eval_multihop.py --docs_path MultiHop-RAG/dataset/corpus.json  --dataset_path MultiHop-RAG/dataset/MultiHopRAG.json --ingest_docs --retrieval_metrics --ragas_metrics --llm_endpoint http://{your_ip}:{your_llm_port}/generate
