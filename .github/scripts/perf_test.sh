@@ -155,6 +155,17 @@ function generate_config(){
         exit 1
     fi
     envsubst < $input_path > $output_path
+
+    # Mark test cases
+    TEST_CASES=${TEST_CASES:-"e2e"}
+    IFS=',' read -r -a test_cases_array <<< "$TEST_CASES"
+    for test_case in "${test_cases_array[@]}"; do
+        test_case=$(echo "$test_case" | xargs)
+        yq eval ".test_cases.chatqna.${test_case}.run_test = true" -i "$output_path"
+        if [ $? -ne 0 ]; then
+            echo "Unknown test case: $test_case"
+        fi
+    done
 }
 
 function wait_until_all_pod_ready() {
