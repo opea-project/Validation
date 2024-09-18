@@ -137,8 +137,9 @@ jobs:
           port: 9001
         run: |
           cd ${{ github.workspace }}/GenAIEval/
-          PATH=$(dirname "$PWD")
-          export PYTHONPATH=$PYTHONPATH:$PATH
+          DPATH=$(dirname "$PWD")
+          export PYTHONPATH=$PYTHONPATH:$DPATH
+          export PATH=$PATH:/bin:/usr/bin
           cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
           # docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
           docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
