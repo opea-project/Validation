@@ -91,24 +91,24 @@ jobs:
           cd GenAIEval
           pip install -r requirements.txt
 
-      - name: Prepare Dataset
-        id: check-dataset
-        env:
-          dataset: ${{ matrix.dataset }}
-        run: |
-          cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/
-          if [[ "${dataset}" == "en" ]]; then
-            cd examples
-            git clone https://github.com/yixuantt/MultiHop-RAG.git
-            need_launch=true
-            echo "need_launch=$need_launch" >>$GITHUB_OUTPUT
-          elif [[ "${dataset}" == "zh" ]]; then
-            git clone https://github.com/IAAR-Shanghai/CRUD_RAG
-            mkdir data/
-            cp CRUD_RAG/data/crud_split/split_merged.json data/
-            cp -r CRUD_RAG/data/80000_docs/ data/
-            python examples/process_crud_dataset.py
-          fi
+      # - name: Prepare Dataset
+      #   id: check-dataset
+      #   env:
+      #     dataset: ${{ matrix.dataset }}
+      #   run: |
+      #     cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/
+      #     if [[ "${dataset}" == "en" ]]; then
+      #       cd examples
+      #       git clone https://github.com/yixuantt/MultiHop-RAG.git
+      #       need_launch=true
+      #       echo "need_launch=$need_launch" >>$GITHUB_OUTPUT
+      #     elif [[ "${dataset}" == "zh" ]]; then
+      #       git clone https://github.com/IAAR-Shanghai/CRUD_RAG
+      #       mkdir data/
+      #       cp CRUD_RAG/data/crud_split/split_merged.json data/
+      #       cp -r CRUD_RAG/data/80000_docs/ data/
+      #       python examples/process_crud_dataset.py
+      #     fi
 
       - name: Launch Service of RAG System
         env:
@@ -158,7 +158,7 @@ jobs:
           export PATH=$PATH:/bin:/usr/bin
           cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
           if [[ "${dataset}" == "en" ]]; then
-            python eval_multihop.py --docs_path MultiHop-RAG/dataset/corpus.json  --dataset_path MultiHop-RAG/dataset/MultiHopRAG.json --ingest_docs --retrieval_metrics --ragas_metrics --llm_endpoint http://${ip_address}:${port}/generate
+            python eval_multihop.py --docs_path /data2/opea-dataset/MultiHop-RAG/dataset/corpus.json  --dataset_path /data2/opea-dataset/MultiHop-RAG/dataset/MultiHopRAG.json --ingest_docs --retrieval_metrics --ragas_metrics --llm_endpoint http://${ip_address}:${port}/generate
           elif [[ "${dataset}" == "zh" ]]; then
-            python eval_crud.py --dataset_path ../data/split_merged.json --docs_path ../data/80000_docs --ingest_docs
+            python eval_crud.py --dataset_path /data2/opea-dataset/data/split_merged.json --docs_path /data2/opea-dataset/data/80000_docs --ingest_docs
           fi
