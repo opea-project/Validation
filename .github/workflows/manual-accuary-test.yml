@@ -149,14 +149,16 @@ jobs:
           HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           dataset: ${{ matrix.dataset }}
+          port: 9001
         run: |
+          ip_address=$(hostname -I | awk '{print $1}')
           cd ${{ github.workspace }}/GenAIEval/
-          DPATH=$(dirname "$PWD")
+          DPATH=$(pwd)
           export PYTHONPATH=$PYTHONPATH:$DPATH
           export PATH=$PATH:/bin:/usr/bin
           cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
           if [[ "${dataset}" == "en" ]]; then
-            python eval_multihop.py --docs_path MultiHop-RAG/dataset/corpus.json  --dataset_path MultiHop-RAG/dataset/MultiHopRAG.json --ingest_docs --retrieval_metrics --ragas_metrics --llm_endpoint http://{your_ip}:{your_llm_port}/generate
+            python eval_multihop.py --docs_path MultiHop-RAG/dataset/corpus.json  --dataset_path MultiHop-RAG/dataset/MultiHopRAG.json --ingest_docs --retrieval_metrics --ragas_metrics --llm_endpoint http://${ip_address}:${port}/generate
           elif [[ "${dataset}" == "zh" ]]; then
             python eval_crud.py --dataset_path ../data/split_merged.json --docs_path ../data/80000_docs --ingest_docs
           fi
