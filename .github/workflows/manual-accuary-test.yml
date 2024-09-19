@@ -58,8 +58,8 @@ jobs:
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
 
-  setup-stress:
-    runs-on: aise-perf
+  setup-acc:
+    runs-on: aise-acc
     needs: [get-test-matrix]
     strategy:
       matrix:
@@ -91,25 +91,6 @@ jobs:
           cd GenAIEval
           pip install -r requirements.txt
 
-      # - name: Prepare Dataset
-      #   id: check-dataset
-      #   env:
-      #     dataset: ${{ matrix.dataset }}
-      #   run: |
-      #     cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/
-      #     if [[ "${dataset}" == "en" ]]; then
-      #       cd examples
-      #       git clone https://github.com/yixuantt/MultiHop-RAG.git
-      #       need_launch=true
-      #       echo "need_launch=$need_launch" >>$GITHUB_OUTPUT
-      #     elif [[ "${dataset}" == "zh" ]]; then
-      #       git clone https://github.com/IAAR-Shanghai/CRUD_RAG
-      #       mkdir data/
-      #       cp CRUD_RAG/data/crud_split/split_merged.json data/
-      #       cp -r CRUD_RAG/data/80000_docs/ data/
-      #       python examples/process_crud_dataset.py
-      #     fi
-
       - name: Launch Service of RAG System
         env:
           dataset: ${{ matrix.dataset }}
@@ -129,7 +110,7 @@ jobs:
 
       - name: Launch Service of LLM-as-a-Judge
         shell: bash
-        if: steps.check-dataset.outputs.need_launch == 'true'
+        if: ${{ matrix.dataset }} == 'en'
         env:
           HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
