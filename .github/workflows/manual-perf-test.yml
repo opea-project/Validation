@@ -142,30 +142,32 @@ jobs:
 
       - name: Stress Test
         working-directory: ./GenAIEval
+        env:
+          TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
+          TEST_CASES: ${{ inputs.testcases }}
         run: |
           source stress_venv/bin/activate
           cd evals/benchmark
           python benchmark.py
-          tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR
           
-          last_test_folder=$(ls -td "$TEST_OUTPUT_DIR"/*/ | head -n 1)
-          testspec_file=${last_test_folder}1_testspec.yaml
-          cp $testspec_file ${{ github.workspace }}
+          ${{ github.workspace }}/Validation/.github/scripts/perf_test.sh process_result_data
+          cp $TEST_OUTPUT_DIR/*_result.csv ${{ github.workspace }}
+          tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR/*_result.csv
 
       - name: Print Test Result
         run: |
-          cat 1_testspec.yaml
-          
+          for file in "${{ github.workspace }}"/*_result.csv; do
+              if [[ -f "$file" ]]; then
+                  echo "Printing contents of: $file"
+                  cat "$file"
+                  echo "-----------------------------------"
+              fi
+          done
+
       - uses: actions/upload-artifact@v4.3.4
         with:
           name: ${{ matrix.node_num }}node_raw_data_tar_${{ steps.prepare_benchmark.outputs.randomstr }}
           path: node_${{ matrix.node_num }}.tar
-          overwrite: true
-
-      - uses: actions/upload-artifact@v4.3.4
-        with:
-          name: ${{ matrix.node_num }}node_testspec_yaml_${{ steps.prepare_benchmark.outputs.randomstr }}
-          path: 1_testspec.yaml
           overwrite: true
 
       - name: Uninstall Workload

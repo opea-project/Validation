@@ -6,6 +6,7 @@ nodeunlabel="node-type-"
 namespace="default"
 modelpath="/mnt/models"
 mode=${MODE:-"tuned/with_rerank"}
+example=${EXAMPLE:-"chatqna"}
 
 function label() {
     echo "Label the node."
@@ -163,10 +164,51 @@ function generate_config(){
     IFS=',' read -r -a test_cases_array <<< "$TEST_CASES"
     for test_case in "${test_cases_array[@]}"; do
         test_case=$(echo "$test_case" | xargs)
-        yq eval ".test_cases.chatqna.${test_case}.run_test = true" -i "$output_path"
+        yq eval ".test_cases.${example}.${test_case}.run_test = true" -i "$output_path"
         if [ $? -ne 0 ]; then
             echo "Unknown test case: $test_case"
         fi
+    done
+}
+
+function process_result_data() {
+    TEST_CASES=${TEST_CASES:-"e2e"}
+    IFS=',' read -r -a test_cases_array <<< "$TEST_CASES"
+    for test_case in "${test_cases_array[@]}"; do
+        test_case=$(echo "$test_case" | xargs)
+        process_data $TEST_OUTPUT_DIR $test_case
+    done
+}
+function process_data() {
+    # under folder GenAIEval/evals/benchmark
+    outputfolder=$1
+    testcase=$2
+    # generate bench_target
+    if [[ "$testcase" == "e2e" ]]; then
+        if [[ "$random_prompt" == true ]]; then
+            bench_target="${example}bench"
+        else
+            bench_target="${example}fixed"
+        fi
+    else
+        if [[ "$random_prompt" == true ]]; then
+            bench_target="${testcase}bench"
+        else
+            bench_target="${testcase}fixed"
+        fi
+    fi
+    # get the last three folder and generate csv file
+    output_csv=$TEST_OUTPUT_DIR/$testcase_result.csv
+    latest_folders=$(ls -td "$TEST_OUTPUT_DIR"/$bench_target*/ | head -n 3)
+    print_header=true
+    for folder in $latest_folders; do
+        echo "Folder: $folder"
+        stresscli/stresscli.py report --folder $folder --format csv --output $folder/result.csv
+        if [[ "$print_header" == true ]]; then
+            head -n 1 "$folder/result.csv" > "$output_csv"
+            print_header=false
+        fi
+        sed -n '2p' "$folder/result.csv" >> "$output_csv"
     done
 }
 
@@ -194,11 +236,11 @@ function wait_until_all_pod_ready() {
 
 function usage()
 {
-	echo "Usage: $0 --cordon --uncordon --label --unlabel --installChatQnA --uninstallChatQnA --generate_config"
+	echo "Usage: $0 --cordon --uncordon --label --unlabel --installChatQnA --uninstallChatQnA --generate_config --process_result_data"
 }
 
 OPTIONS="-h"
-LONGOPTIONS="help,cordon,uncordon,label,unlabel,installChatQnA,uninstallChatQnA,generate_config"
+LONGOPTIONS="help,cordon,uncordon,label,unlabel,installChatQnA,uninstallChatQnA,generate_config,process_result_data"
 
 if [ $# -lt 1 ]; then
 	usage
@@ -236,6 +278,9 @@ case "$1" in
         ;;
     --generate_config)
         generate_config $2
+        ;;
+    --process_result_data)
+        process_result_data
         ;;
     *)
         echo "Unknown option: $1"
