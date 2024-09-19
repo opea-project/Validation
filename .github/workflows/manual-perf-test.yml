@@ -171,20 +171,20 @@ jobs:
           overwrite: true
 
       - name: Uninstall Workload
-        if: ${{ fromJSON(inputs.cleanup) }}
+        if: always()
         working-directory: ./Validation
         env:
           MODE: ${{ inputs.mode }}
         run: |
-          if $uninstall; then
+          if [[ "$uninstall" == true && "${{ inputs.cleanup }}" == true ]]; then
             .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
             sleep 120s
           fi
 
       - name: K8s Unlabel Nodes
-        if: ${{ fromJSON(inputs.cleanup) }}
+        if: always()
         working-directory: ./Validation
         run: |
-          if $uncordon; then
+          if [[ "$uncordon" == true && "${{ inputs.cleanup }}" == true ]]; then
             .github/scripts/perf_test.sh --unlabel
           fi
