@@ -32,8 +32,13 @@ on:
         required: false
         type: string
       testcases:
-        default: "e2e"
+        default: "e2e, embedserve, rerankserve, llmserve"
         description: "The test cases of chatqna, e.g., e2e, embedserve, rerankserve, llmserve"
+        required: false
+        type: string
+      userqueries:
+        default: ''
+        description: "The user query list, e.g., '4, 8, 16, 640', empty input means the default setting."
         required: false
         type: string
       cleanup:
@@ -106,6 +111,7 @@ jobs:
         env:
           TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
           TEST_CASES: ${{ inputs.testcases }}
+          USER_QUERIES: ${{ inputs.userqueries }}
         run: |
           rm -rf $TEST_OUTPUT_DIR
           .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
