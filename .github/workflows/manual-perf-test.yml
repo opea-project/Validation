@@ -150,7 +150,7 @@ jobs:
           cd evals/benchmark
           python benchmark.py
           
-          ${{ github.workspace }}/Validation/.github/scripts/perf_test.sh process_result_data
+          ${{ github.workspace }}/Validation/.github/scripts/perf_test.sh --process_result_data
           cp $TEST_OUTPUT_DIR/*_result.csv ${{ github.workspace }}
           tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR/*_result.csv
 

@@ -14,7 +14,7 @@ function label() {
     label_nums=$1
     cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
     node_count=$(kubectl get nodes --no-headers | wc -l)
-    cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
+    #cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
@@ -198,17 +198,17 @@ function process_data() {
         fi
     fi
     # get the last three folder and generate csv file
-    output_csv=$TEST_OUTPUT_DIR/$testcase_result.csv
+    output_csv=${TEST_OUTPUT_DIR}/${testcase}_result.csv
     latest_folders=$(ls -td "$TEST_OUTPUT_DIR"/$bench_target*/ | head -n 3)
     print_header=true
     for folder in $latest_folders; do
         echo "Folder: $folder"
-        stresscli/stresscli.py report --folder $folder --format csv --output $folder/result.csv
+        stresscli/stresscli.py report --folder $folder --format csv --output ${folder}result.csv
         if [[ "$print_header" == true ]]; then
-            head -n 1 "$folder/result.csv" > "$output_csv"
+            head -n 1 "${folder}result.csv" > "$output_csv"
             print_header=false
         fi
-        sed -n '2p' "$folder/result.csv" >> "$output_csv"
+        sed -n '2p' "${folder}result.csv" >> "$output_csv"
     done
 }
 
