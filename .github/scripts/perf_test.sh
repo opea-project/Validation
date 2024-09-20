@@ -14,7 +14,7 @@ function label() {
     label_nums=$1
     cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
     node_count=$(kubectl get nodes --no-headers | wc -l)
-    #cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
+    cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
@@ -210,6 +210,8 @@ function process_data() {
         fi
         sed -n '2p' "${folder}result.csv" >> "$output_csv"
     done
+    # calculate with python script
+    python process_csv.py "$output_csv"
 }
 
 function wait_until_all_pod_ready() {
