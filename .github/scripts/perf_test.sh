@@ -207,6 +207,7 @@ function process_data() {
         if [[ "$print_header" == true ]]; then
             head -n 1 "${folder}result.csv" > "$output_csv"
             print_header=false
+            cp ${folder}1_testspec.yaml ${TEST_OUTPUT_DIR}/${testcase}_testspec.yaml
         fi
         sed -n '2p' "${folder}result.csv" >> "$output_csv"
     done
