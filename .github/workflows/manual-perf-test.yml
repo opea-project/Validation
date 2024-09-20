@@ -154,7 +154,8 @@ jobs:
           
           ${{ github.workspace }}/Validation/.github/scripts/perf_test.sh --process_result_data
           cp $TEST_OUTPUT_DIR/*_result.csv ${{ github.workspace }}
-          tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR/*_result.csv
+          cp $TEST_OUTPUT_DIR/*_testspec.yaml ${{ github.workspace }}
+          tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR/*_result.csv $TEST_OUTPUT_DIR/*_testspec.yaml
 
       - name: Print Test Result
         run: |
@@ -165,6 +166,9 @@ jobs:
                   echo "-----------------------------------"
               fi
           done
+          spec_file=$(find "${{ github.workspace }}" -maxdepth 1 -name '*_testspec.yaml' | head -n 1)
+          echo "Dump test specification: $spec_file"
+          cat "$spec_file"
 
       - uses: actions/upload-artifact@v4.3.4
         with:
