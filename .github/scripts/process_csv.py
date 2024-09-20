@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import argparse
 
 # Set up command line argument parsing
@@ -25,15 +26,17 @@ columns_to_average = [
     'Next_token_latency_P99',
     'Output_Tokens_per_Second'
 ]
-columns_to_keep = ['No', 'run_name'] + columns_to_average
 
 df = pd.read_csv(csv_file, delimiter=',')
+existing_columns_to_average = [col for col in columns_to_average if col in df.columns]
+columns_to_keep = ['No', 'run_name'] + existing_columns_to_average
 
 df_filtered = df[columns_to_keep]
-average_values = df_filtered[columns_to_average].mean()
+average_values = df_filtered[existing_columns_to_average].mean()
+rounded_values = {col: np.ceil(avg * 100) / 100 for col, avg in zip(existing_columns_to_average, average_values)}
 
 # Create a new row to append to the DataFrame
-new_row = {col: avg for col, avg in zip(columns_to_average, average_values)}
+new_row = {col: rounded_values[col] for col in existing_columns_to_average}
 new_row['run_name'] = 'Average'
 new_row_df = pd.DataFrame([new_row])
 df_filtered = pd.concat([df_filtered, new_row_df], ignore_index=True)

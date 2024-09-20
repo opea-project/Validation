@@ -14,7 +14,7 @@ function label() {
     label_nums=$1
     cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
     node_count=$(kubectl get nodes --no-headers | wc -l)
-    cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
+    #cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
@@ -48,7 +48,7 @@ function installChatQnA() {
     echo "Install ChatQnA."
     num_gaudi=$1
     
-    mpath="ChatQnA/benchmark/$mode/"
+    mpath="ChatQnA/benchmark/performance/$mode/"
     if [ "$num_gaudi" -eq 1 ]; then
         mpath+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
@@ -113,7 +113,7 @@ function uninstallChatQnA() {
     echo "Uninstall ChatQnA."
     num_gaudi=$1
 
-    path="ChatQnA/benchmark/${mode}/"
+    path="ChatQnA/benchmark/performance/${mode}/"
     if [ "$num_gaudi" -eq 1 ]; then
         path+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then

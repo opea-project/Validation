@@ -28,7 +28,7 @@ on:
         type: string
       mode:
         default: "oob/with_rerank"
-        description: "The folder under GenAIExamples/ChatQnA/benchmark/<mode>/*_node"
+        description: "The folder under GenAIExamples/ChatQnA/benchmark/performance/<mode>/*_node"
         required: false
         type: string
       testcases:
