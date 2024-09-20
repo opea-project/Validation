@@ -6,6 +6,7 @@ nodeunlabel="node-type-"
 namespace="default"
 modelpath="/mnt/models"
 mode=${MODE:-"tuned/with_rerank"}
+example=${EXAMPLE:-"chatqna"}
 
 function label() {
     echo "Label the node."
@@ -47,7 +48,7 @@ function installChatQnA() {
     echo "Install ChatQnA."
     num_gaudi=$1
     
-    mpath="ChatQnA/benchmark/$mode/"
+    mpath="ChatQnA/benchmark/performance/$mode/"
     if [ "$num_gaudi" -eq 1 ]; then
         mpath+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
@@ -112,7 +113,7 @@ function uninstallChatQnA() {
     echo "Uninstall ChatQnA."
     num_gaudi=$1
 
-    path="ChatQnA/benchmark/${mode}/"
+    path="ChatQnA/benchmark/performance/${mode}/"
     if [ "$num_gaudi" -eq 1 ]; then
         path+="single_gaudi"
     elif [ "$num_gaudi" -eq 2 ]; then
@@ -143,17 +144,19 @@ function generate_config(){
     output_path="../GenAIEval/evals/benchmark/benchmark.yaml"
 
     if [ "$num_gaudi" -eq 1 ]; then
-        export USER_QUERIES="4, 8, 16, 640, 640, 640, 640, 640, 640"
+        DEFAULT_USER_QUERIES="4, 8, 16, 640, 640, 640, 640, 640, 640"
     elif [ "$num_gaudi" -eq 2 ]; then
-        export USER_QUERIES="4, 8, 16, 1280, 1280, 1280, 1280, 1280, 1280"
+        DEFAULT_USER_QUERIES="4, 8, 16, 1280, 1280, 1280, 1280, 1280, 1280"
     elif [ "$num_gaudi" -eq 4 ]; then
-        export USER_QUERIES="4, 8, 16, 2560, 2560, 2560, 2560, 2560, 2560"
+        DEFAULT_USER_QUERIES="4, 8, 16, 2560, 2560, 2560, 2560, 2560, 2560"
     elif [ "$num_gaudi" -eq 8 ]; then
-        export USER_QUERIES="4, 8, 16, 5120, 5120, 5120, 5120, 5120, 5120"
+        DEFAULT_USER_QUERIES="4, 8, 16, 5120, 5120, 5120, 5120, 5120, 5120"
     else
         echo "Unsupported number of gaudi: $num_gaudi"
         exit 1
     fi
+    CUSTOMIZE_QUERY_LIST=${USER_QUERIES:-$DEFAULT_USER_QUERIES}
+    export USER_QUERIES=$CUSTOMIZE_QUERY_LIST
     envsubst < $input_path > $output_path
 
     # Mark test cases
@@ -161,11 +164,54 @@ function generate_config(){
     IFS=',' read -r -a test_cases_array <<< "$TEST_CASES"
     for test_case in "${test_cases_array[@]}"; do
         test_case=$(echo "$test_case" | xargs)
-        yq eval ".test_cases.chatqna.${test_case}.run_test = true" -i "$output_path"
+        yq eval ".test_cases.${example}.${test_case}.run_test = true" -i "$output_path"
         if [ $? -ne 0 ]; then
             echo "Unknown test case: $test_case"
         fi
     done
+}
+
+function process_result_data() {
+    TEST_CASES=${TEST_CASES:-"e2e"}
+    IFS=',' read -r -a test_cases_array <<< "$TEST_CASES"
+    for test_case in "${test_cases_array[@]}"; do
+        test_case=$(echo "$test_case" | xargs)
+        process_data $TEST_OUTPUT_DIR $test_case
+    done
+}
+function process_data() {
+    # under folder GenAIEval/evals/benchmark
+    outputfolder=$1
+    testcase=$2
+    # generate bench_target
+    if [[ "$testcase" == "e2e" ]]; then
+        if [[ "$random_prompt" == true ]]; then
+            bench_target="${example}bench"
+        else
+            bench_target="${example}fixed"
+        fi
+    else
+        if [[ "$random_prompt" == true ]]; then
+            bench_target="${testcase}bench"
+        else
+            bench_target="${testcase}fixed"
+        fi
+    fi
+    # get the last three folder and generate csv file
+    output_csv=${TEST_OUTPUT_DIR}/${testcase}_result.csv
+    latest_folders=$(ls -td "$TEST_OUTPUT_DIR"/$bench_target*/ | head -n 3)
+    print_header=true
+    for folder in $latest_folders; do
+        echo "Folder: $folder"
+        stresscli/stresscli.py report --folder $folder --format csv --output ${folder}result.csv
+        if [[ "$print_header" == true ]]; then
+            head -n 1 "${folder}result.csv" > "$output_csv"
+            print_header=false
+        fi
+        sed -n '2p' "${folder}result.csv" >> "$output_csv"
+    done
+    # calculate with python script
+    python process_csv.py "$output_csv"
 }
 
 function wait_until_all_pod_ready() {
@@ -192,11 +238,11 @@ function wait_until_all_pod_ready() {
 
 function usage()
 {
-	echo "Usage: $0 --cordon --uncordon --label --unlabel --installChatQnA --uninstallChatQnA --generate_config"
+	echo "Usage: $0 --cordon --uncordon --label --unlabel --installChatQnA --uninstallChatQnA --generate_config --process_result_data"
 }
 
 OPTIONS="-h"
-LONGOPTIONS="help,cordon,uncordon,label,unlabel,installChatQnA,uninstallChatQnA,generate_config"
+LONGOPTIONS="help,cordon,uncordon,label,unlabel,installChatQnA,uninstallChatQnA,generate_config,process_result_data"
 
 if [ $# -lt 1 ]; then
 	usage
@@ -234,6 +280,9 @@ case "$1" in
         ;;
     --generate_config)
         generate_config $2
+        ;;
+    --process_result_data)
+        process_result_data
         ;;
     *)
         echo "Unknown option: $1"

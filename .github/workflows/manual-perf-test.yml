@@ -28,12 +28,17 @@ on:
         type: string
       mode:
         default: "oob/with_rerank"
-        description: "The folder under GenAIExamples/ChatQnA/benchmark/<mode>/*_node"
+        description: "The folder under GenAIExamples/ChatQnA/benchmark/performance/<mode>/*_node"
         required: false
         type: string
       testcases:
-        default: "e2e"
+        default: "e2e, embedserve, rerankserve, llmserve"
         description: "The test cases of chatqna, e.g., e2e, embedserve, rerankserve, llmserve"
+        required: false
+        type: string
+      userqueries:
+        default: ''
+        description: "The user query list, e.g., '4, 8, 16, 640', empty input means the default setting."
         required: false
         type: string
       cleanup:
@@ -95,6 +100,8 @@ jobs:
             sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
             sudo chmod +x /usr/bin/yq
           fi
+          pip install pandas # install python lib pandas for csv processing
+          cp Validation/.github/scripts/process_csv.py GenAIEval/evals/benchmark # copy process_csv.py to GenAIEval folder
           cd GenAIEval
           python3 -m venv stress_venv
           source stress_venv/bin/activate
@@ -106,6 +113,7 @@ jobs:
         env:
           TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
           TEST_CASES: ${{ inputs.testcases }}
+          USER_QUERIES: ${{ inputs.userqueries }}
         run: |
           rm -rf $TEST_OUTPUT_DIR
           .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
@@ -136,47 +144,49 @@ jobs:
 
       - name: Stress Test
         working-directory: ./GenAIEval
+        env:
+          TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
+          TEST_CASES: ${{ inputs.testcases }}
         run: |
           source stress_venv/bin/activate
           cd evals/benchmark
           python benchmark.py
-          tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR
           
-          last_test_folder=$(ls -td "$TEST_OUTPUT_DIR"/*/ | head -n 1)
-          testspec_file=${last_test_folder}1_testspec.yaml
-          cp $testspec_file ${{ github.workspace }}
+          ${{ github.workspace }}/Validation/.github/scripts/perf_test.sh --process_result_data
+          cp $TEST_OUTPUT_DIR/*_result.csv ${{ github.workspace }}
+          tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR/*_result.csv
 
       - name: Print Test Result
         run: |
-          cat 1_testspec.yaml
-          
+          for file in "${{ github.workspace }}"/*_result.csv; do
+              if [[ -f "$file" ]]; then
+                  echo "Printing contents of: $file"
+                  cat "$file"
+                  echo "-----------------------------------"
+              fi
+          done
+
       - uses: actions/upload-artifact@v4.3.4
         with:
           name: ${{ matrix.node_num }}node_raw_data_tar_${{ steps.prepare_benchmark.outputs.randomstr }}
           path: node_${{ matrix.node_num }}.tar
           overwrite: true
 
-      - uses: actions/upload-artifact@v4.3.4
-        with:
-          name: ${{ matrix.node_num }}node_testspec_yaml_${{ steps.prepare_benchmark.outputs.randomstr }}
-          path: 1_testspec.yaml
-          overwrite: true
-
       - name: Uninstall Workload
-        if: ${{ fromJSON(inputs.cleanup) }}
+        if: always()
         working-directory: ./Validation
         env:
           MODE: ${{ inputs.mode }}
         run: |
-          if $uninstall; then
+          if [[ "$uninstall" == true && "${{ inputs.cleanup }}" == true ]]; then
             .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
             sleep 120s
           fi
 
       - name: K8s Unlabel Nodes
-        if: ${{ fromJSON(inputs.cleanup) }}
+        if: always()
         working-directory: ./Validation
         run: |
-          if $uncordon; then
+          if [[ "$uncordon" == true && "${{ inputs.cleanup }}" == true ]]; then
             .github/scripts/perf_test.sh --unlabel
           fi
