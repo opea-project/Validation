@@ -7,6 +7,9 @@ namespace="default"
 modelpath="/mnt/models"
 mode=${MODE:-"tuned/with_rerank"}
 example=${EXAMPLE:-"chatqna"}
+export LOAD_SHAPE=${LOAD_SHAPE:-"constant"}
+export CONCURRENT_LEVEL=${CONCURRENT_LEVEL:-5}
+export ARRIVAL_RATE=${ARRIVAL_RATE:-1.0}
 
 function label() {
     echo "Label the node."
