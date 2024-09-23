@@ -26,6 +26,11 @@ on:
         description: "GenAIExamples branch to test manifests"
         required: true
         type: string
+      eval_branch:
+        default: "main"
+        description: "GenAIEval branch to test manifests"
+        required: true
+        type: string
       mode:
         default: "oob/with_rerank"
         description: "The folder under GenAIExamples/ChatQnA/benchmark/performance/<mode>/*_node"
@@ -92,6 +97,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: opea-project/GenAIEval
+          ref: ${{ inputs.eval_branch }}
           path: GenAIEval
 
       - name: Set up stress tool
