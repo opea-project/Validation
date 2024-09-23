@@ -41,9 +41,14 @@ on:
         description: "The test cases of chatqna, e.g., e2e, embedserve, rerankserve, llmserve"
         required: false
         type: string
-      userqueries:
-        default: ''
-        description: "The user query list, e.g., '4, 8, 16, 640', empty input means the default setting."
+      # userqueries:
+      #   default: ''
+      #   description: "The user query list, e.g., '4, 8, 16, 640', empty input means the default setting."
+      #   required: false
+      #   type: string
+      loadconfig:
+        default: "constant:5"
+        description: "configuration for load test in format load_type:value, constant:5 or poisson:1.0"
         required: false
         type: string
       cleanup:
@@ -112,6 +117,19 @@ jobs:
           python3 -m venv stress_venv
           source stress_venv/bin/activate
           pip install -r requirements.txt
+
+          #config env values
+          LOAD_SHAPE=$(echo "${{ inputs.loadconfig }}" | cut -d':' -f1 | xargs)
+          second_part=$(echo "${{ inputs.loadconfig }}" | cut -d':' -f2 | xargs)
+          if [ "$LOAD_SHAPE" == "constant" ]; then
+              echo "LOAD_SHAPE=$LOAD_SHAPE" >> $GITHUB_ENV
+              echo "CONCURRENT_LEVEL=$second_part" >> $GITHUB_ENV
+          elif [ "$LOAD_SHAPE" == "poisson" ]; then
+              echo "LOAD_SHAPE=$LOAD_SHAPE" >> $GITHUB_ENV
+              echo "ARRIVAL_RATE=$second_part" >> $GITHUB_ENV
+          else
+              echo "Unknown LOAD_SHAPE: $LOAD_SHAPE"
+          fi
 
       - name: Prepare benchmark configuration
         id: prepare_benchmark

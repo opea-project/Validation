@@ -7,6 +7,9 @@ namespace="default"
 modelpath="/mnt/models"
 mode=${MODE:-"tuned/with_rerank"}
 example=${EXAMPLE:-"chatqna"}
+export LOAD_SHAPE=${LOAD_SHAPE:-"constant"}
+export CONCURRENT_LEVEL=${CONCURRENT_LEVEL:-5}
+export ARRIVAL_RATE=${ARRIVAL_RATE:-1.0}
 
 function label() {
     echo "Label the node."
@@ -14,7 +17,7 @@ function label() {
     label_nums=$1
     cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
     node_count=$(kubectl get nodes --no-headers | wc -l)
-    cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
+    #cluster_node_names="satg-opea-4node-3 satg-opea-4node-0"
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
