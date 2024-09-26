@@ -140,12 +140,12 @@ jobs:
           cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
           if [[ "${dataset}" == "en" ]]; then
            # --ragas_metrics 
-            python eval_multihop.py --docs_path /data2/opea-dataset/MultiHop-RAG/dataset/corpus.json  --dataset_path /data2/opea-dataset/MultiHop-RAG/dataset/MultiHopRAG.json --ingest_docs --chunk_size 512 --chunk_overlap 200 --retrieval_metrics --llm_endpoint http://${ip_address}:${port}/generate > ${{ github.workspace }}/acc/en-without-rerank.txt
+            python eval_multihop.py --docs_path /data2/opea-dataset/MultiHop-RAG/dataset/corpus.json  --dataset_path /data2/opea-dataset/MultiHop-RAG/dataset/MultiHopRAG.json --ingest_docs --chunk_size 512 --chunk_overlap 200 --retrieval_metrics --llm_endpoint http://${ip_address}:${port}/generate > en-without-rerank.txt
 
-            python eval_multihop.py --docs_path /data2/opea-dataset/MultiHop-RAG/dataset/corpus.json  --dataset_path /data2/opea-dataset/MultiHop-RAG/dataset/MultiHopRAG.json --retrieval_metrics --rerank --retrival_k 20 --llm_endpoint http://${ip_address}:${port}/generate > ${{ github.workspace }}/acc/en-with-rerank.txt
+            python eval_multihop.py --docs_path /data2/opea-dataset/MultiHop-RAG/dataset/corpus.json  --dataset_path /data2/opea-dataset/MultiHop-RAG/dataset/MultiHopRAG.json --retrieval_metrics --rerank --retrival_k 20 --llm_endpoint http://${ip_address}:${port}/generate > en-with-rerank.txt
 
           elif [[ "${dataset}" == "zh" ]]; then
-            python eval_crud.py --dataset_path /data2/opea-dataset/data/split_merged.json --docs_path /data2/opea-dataset/data/80000_docs --ingest_docs > ${{ github.workspace }}/acc/zh.txt
+            python eval_crud.py --dataset_path /data2/opea-dataset/data/split_merged.json --docs_path /data2/opea-dataset/data/80000_docs --ingest_docs > zh.txt
           fi
 
       - name: Clean up container
@@ -154,9 +154,9 @@ jobs:
           docker system prune -f
           docker rmi $(docker images --filter reference="*/*:acc" -q) || true
 
-      - name: Publish pipeline artifact
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.dataset }}
-          path: ${{ github.workspace }}/acc/*.txt
+      # - name: Publish pipeline artifact
+      #   if: ${{ !cancelled() }}
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ${{ matrix.dataset }}
+      #     path: ${{ github.workspace }}/acc/*.txt
