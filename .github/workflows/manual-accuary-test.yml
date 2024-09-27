@@ -160,9 +160,9 @@ jobs:
           docker system prune -f
           docker rmi $(docker images --filter reference="*/*:acc" -q) || true
 
-      # - name: Publish pipeline artifact
-      #   if: ${{ !cancelled() }}
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: ${{ matrix.dataset }}
-      #     path: ${{ github.workspace }}/acc/*.txt
+      - name: Publish pipeline artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.dataset }}
+          path: ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples/*.txt
