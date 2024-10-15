@@ -102,7 +102,7 @@ function main() {
     if [[ "$IMAGE_REPO" == "opea" ]]; then build_docker_images; fi
     start_services
 
-    validate_microservices
+    validate_megaservice
 
     # stop_docker
     # echo y | docker system prune
