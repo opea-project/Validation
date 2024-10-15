@@ -77,6 +77,9 @@ jobs:
         env:
           example: ${{ matrix.example }}
         run: |
+          set -x
+          echo "Dataset: ${{ matrix.dataset }}"
+          echo "Example: ${{ matrix.example }}"
           cd ${{ github.workspace }}/GenAIEval
           pip install -r requirements.txt
           if [[ "${example}" == "AudioQnA" ]]; then
