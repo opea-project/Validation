@@ -6,35 +6,17 @@ name: Run accuary test on a Gaudi
 on:
   workflow_dispatch:
     inputs:
-      # registry:
-      #   default: ""
-      #   description: "Registry to store images,e.g., docker.io, default is empty"
-      #   required: false
-      #   type: string
-      # nodes:
-      #   default: "gaudi"
-      #   description: "Hardware to run test"
-      #   required: true
-      #   type: string
+      examples:
+        default: "ChatQnA"
+        description: 'List of examples to test [AudioQnA,ChatQnA,CodeGen,FaqGen]'
+        required: true
+        type: string
       datasets:
         default: "en"
         description: "List of services to test [en, zh]"
         required: true
         type: string
-      # tag:
-      #   default: "rc0.9"
-      #   description: "Tag to apply to images"
-      #   required: true
-      #   type: string
-      # opea_branch:
-      #   default: "rc0.9"
-      #   description: "Branch to build images"
-      #   required: true
-      #   type: string
-      # runner:
-      #   description: "Runner label"
-      #   required: true
-      #   type: string
+
   pull_request:
     branches: [main]
     types: [opened, reopened, ready_for_review, synchronize]
@@ -49,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       datasets: ${{ steps.get-matrix.outputs.datasets }}
+      examples: ${{ steps.get-matrix.outputs.examples }}
     steps:
       - name: Create Matrix
         id: get-matrix
@@ -57,6 +40,9 @@ jobs:
           datasets=($(echo "en,zh" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
+          examples=($(echo "AudioQnA,ChatQnA,CodeGen,FaqGen" | tr ',' ' '))
+          examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
+          echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
   setup-acc:
     runs-on: aise-acc
@@ -64,6 +50,7 @@ jobs:
     strategy:
       matrix:
         dataset: ${{ fromJson(needs.get-test-matrix.outputs.datasets) }}
+        example: ${{ fromJson(needs.get-test-matrix.outputs.examples) }}
       fail-fast: false
     steps:
       - name: Clean Up Working Directory
@@ -87,72 +74,121 @@ jobs:
           path: GenAIExamples
 
       - name: Set up environment
-        run: |
-          cd GenAIEval
-          pip install -r requirements.txt
-
-      - name: Launch Service of RAG System
         env:
-          dataset: ${{ matrix.dataset }}
-          node: ${{ matrix.node }}
+          example: ${{ matrix.example }}
         run: |
-          export IMAGE_TAG=acc
-          cd ${{ github.workspace }}/GenAIExamples/ChatQnA/tests/
-          if [[ "${dataset}" == "zh" ]]; then
-            head -n "$(($(wc -l < test_compose_on_gaudi.sh) - 10))" "test_compose_on_gaudi.sh" > launch_rag_zh.sh
-            echo "}" >> launch_rag_zh.sh
-            echo "main" >> launch_rag_zh.sh
-            sed -i 's/export EMBEDDING_MODEL_ID="BAAI\/bge-base-en-v1.5"/export EMBEDDING_MODEL_ID="BAAI\/bge-base-zh-v1.5"/' launch_rag_zh.sh
-            sed -i 's/export LLM_MODEL_ID="Intel\/neural-chat-7b-v3-3"/export LLM_MODEL_ID="Qwen\/Qwen2-7B-Instruct"/' launch_rag_zh.sh
-            cat launch_rag_zh.sh
-            bash launch_rag_zh.sh
-          else
-            head -n "$(($(wc -l < test_compose_on_gaudi.sh) - 10))" "test_compose_on_gaudi.sh" > launch_rag_en.sh
-            echo "}" >> launch_rag_en.sh
-            echo "main" >> launch_rag_en.sh
-            cat launch_rag_en.sh
-            bash launch_rag_en.sh
+          cd ${{ github.workspace }}/GenAIEval
+          pip install -r requirements.txt
+          if [[ "${example}" == "AudioQnA" ]]; then
+            cd ${{ github.workspace }}/GenAIExamples/AudioQnA/benchmark/accuracy
+            pip install -r requirements.txt
+          elif [[ "${example}" == "CodeGen" ]]; then
+            pip install -e .
           fi
 
-      - name: Launch Service of LLM-as-a-Judge
-        shell: bash
-        if: ${{ matrix.dataset }} == 'en'
+      - name: Launch Service
         env:
           HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
           port: 9001
+          IMAGE_TAG: acc
         run: |
-          cd ${{ github.workspace }}/GenAIEval/
-          DPATH=$(dirname "$PWD")
-          export PYTHONPATH=$PYTHONPATH:$DPATH
-          export PATH=$PATH:/bin:/usr/bin
-          cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
-          # docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
-          docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
+          ip_address=$(hostname -I | awk '{print $1}')
+          cd ${{ github.workspace }}/GenAIExamples/${example}/tests/
+          cp ${{ github.workspace }}/Validation/.github/scripts/launch_service/launch_"${example}"*.sh .          
+          if [[ "${example}" == "ChatQnA" ]]; then
+            bash launch_"${example}"_"${dataset}".sh
+            if [[ "${dataset}" == "en" ]]; then
+              cd ${{ github.workspace }}/GenAIEval/
+              DPATH=$(dirname "$PWD")
+              export PYTHONPATH=$PYTHONPATH:$DPATH
+              export PATH=$PATH:/bin:/usr/bin
+              cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
+              # docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
+              docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
+            else
+              echo "ChatQnA dataset is ${dataset}."
+            fi
+          elif [[ "${example}" == "FaQGen" ]]; then
+            bash launch_"${example}".sh
+            export FAQ_ENDPOINT = "http://${your_ip}:9000/v1/faqgen"
+            cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy
+            sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
+            # sed -i 's/with open("data\/sqv2_faq.json", "w") as outfile:/with open("\/data2\/opea-dataset\/FaqGen\/sqv2_faq.json", "w") as outfile:/g' post_process_FAQ.py
+            sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
+            # sed -i 's/with open("data\/sqv2_faq.json", "w") as outfile:/with open("\/data2\/opea-dataset\/FaqGen\/sqv2_faq.json", "w") as outfile:/g' evaluate.py
+            python generate_FAQ.py
+            python post_process_FAQ.py
+
+            export HUGGING_FACE_HUB_TOKEN="${HUGGINGFACEHUB_API_TOKEN}"
+            bash launch_tgi.sh
+          else
+            bash launch_"${example}".sh
+            echo "${example}"
+          fi
+
+      # - name: Launch Service of LLM-as-a-Judge
+      #   shell: bash
+      #   if: ${{ matrix.dataset }} == 'en' && ${{ matrix.dataset }} == 'ChatQnA'
+      #   env:
+      #     HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+      #     HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      #     dataset: ${{ matrix.dataset }}
+      #     port: 9001
+      #   run: |
+      #     cd ${{ github.workspace }}/GenAIEval/
+      #     DPATH=$(dirname "$PWD")
+      #     export PYTHONPATH=$PYTHONPATH:$DPATH
+      #     export PATH=$PATH:/bin:/usr/bin
+      #     cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
+      #     # docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
+      #     docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
 
       - name: Run Evaluation
         env:
           HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
           port: 9001
         run: |
           ip_address=$(hostname -I | awk '{print $1}')
-          cd ${{ github.workspace }}/GenAIEval/
-          DPATH=$(pwd)
-          export PYTHONPATH=$PYTHONPATH:$DPATH
-          export PATH=$PATH:/bin:/usr/bin
-          cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
-          if [[ "${dataset}" == "en" ]]; then
-           # --ragas_metrics 
-            python eval_multihop.py --docs_path /data2/opea-dataset/MultiHop-RAG/dataset/corpus.json  --dataset_path /data2/opea-dataset/MultiHop-RAG/dataset/MultiHopRAG.json --ingest_docs --chunk_size 512 --chunk_overlap 200 --retrieval_metrics --llm_endpoint http://${ip_address}:${port}/generate > en-without-rerank.txt
-
-            python eval_multihop.py --docs_path /data2/opea-dataset/MultiHop-RAG/dataset/corpus.json  --dataset_path /data2/opea-dataset/MultiHop-RAG/dataset/MultiHopRAG.json --retrieval_metrics --rerank --retrival_k 20 --llm_endpoint http://${ip_address}:${port}/generate > en-with-rerank.txt
-
-          elif [[ "${dataset}" == "zh" ]]; then
-            python eval_crud.py --dataset_path /data2/opea-dataset/data/split_merged.json --docs_path /data2/opea-dataset/data/80000_docs --ingest_docs > zh.txt
+          mkdir acc-log
+          cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy
+          if [[ "${example}" == "CodeGen " ]]; then
+            export CODEGEN_ENDPOINT="http://${your_ip}:7778/v1/codegen"
+            export CODEGEN_MODEL="Qwen/CodeQwen1.5-7B-Chat"
+            bash run_acc.sh $CODEGEN_MODEL $CODEGEN_ENDPOINT > ${{ github.workspace }}/acc-log/${example}.txt
+          elif [[ "${example}" == "ChatQnA" ]]; then
+            sed -i 's/--docs_path MultiHop-RAG\/dataset\/corpus.json/--docs_path \/data2\/opea-dataset\/${example}\/MultiHop-RAG\/dataset\/corpus.json/g' run_acc.sh
+            sed -i 's/--dataset_path MultiHop-RAG\/dataset\/MultiHopRAG.json/--dataset_path \/data2\/opea-dataset\/${example}\/MultiHop-RAG\/dataset\/MultiHopRAG.json/g' run_acc.sh
+            sed -i 's/--dataset_path \.\.\/data\/split_merged.json/--dataset_path \/data2\/opea-dataset\/${example}\/data\/split_merged.json/g' run_acc.sh
+            sed -i 's/--docs_path \.\.\/data\/80000_docs/--docs_path \/data2\/opea-dataset\/${example}\/data\/80000_docs/g' run_acc.sh
+            sed -i '/git clone https:\/\/github.com\/yixuantt\/MultiHop-RAG.git/d' run_acc.sh
+            sed -i '/git clone https:\/\/github.com\/IAAR-Shanghai\/CRUD_RAG/d' \
+                   '/mkdir data\//d' \
+                   '/cp CRUD_RAG\/data\/crud_split\/split_merged.json data\//d' \
+                   '/cp -r CRUD_RAG\/data\/80000_docs\/ data\//d' \
+                   '/python process_crud_dataset.py/d' run_acc.sh
+            bash run_acc.sh ${dataset} > ${{ github.workspace }}/acc-log/${example}-${dataset}.txt
           fi
+          bash run_acc.sh >  ${{ github.workspace }}/acc-log/${example}.txt
+          # cd ${{ github.workspace }}/GenAIEval/
+          # DPATH=$(pwd)
+          # export PYTHONPATH=$PYTHONPATH:$DPATH
+          # export PATH=$PATH:/bin:/usr/bin
+          # cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
+          # if [[ "${dataset}" == "en" ]]; then
+          #  # --ragas_metrics 
+          #   python eval_multihop.py --docs_path /data2/opea-dataset/${{ matrix.example }}/MultiHop-RAG/dataset/corpus.json  --dataset_path /data2/opea-dataset/${{ matrix.example }}/MultiHop-RAG/dataset/MultiHopRAG.json --ingest_docs --chunk_size 512 --chunk_overlap 200 --retrieval_metrics --llm_endpoint http://${ip_address}:${port}/generate > en-without-rerank.txt
+
+          #   python eval_multihop.py --docs_path /data2/opea-dataset/${{ matrix.example }}/MultiHop-RAG/dataset/corpus.json  --dataset_path /data2/opea-dataset/${{ matrix.example }}/MultiHop-RAG/dataset/MultiHopRAG.json --retrieval_metrics --rerank --retrival_k 20 --llm_endpoint http://${ip_address}:${port}/generate > en-with-rerank.txt
+
+          # elif [[ "${dataset}" == "zh" ]]; then
+          #   python eval_crud.py --dataset_path /data2/opea-dataset/${{ matrix.example }}/data/split_merged.json --docs_path /data2/opea-dataset/${{ matrix.example }}/data/80000_docs --ingest_docs > zh.txt
+          # fi
 
       - name: Clean up container
         if: always()
@@ -164,5 +200,5 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.dataset }}
-          path: ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples/*.txt
+          name: ${{ matrix.example }}
+          payh: ${{ github.workspace }}/acc-log/${example}*.txt
