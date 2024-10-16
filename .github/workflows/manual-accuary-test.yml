@@ -163,6 +163,7 @@ jobs:
           dataset: ${{ matrix.dataset }}
           port: 9001
         run: |
+          set -x
           ip_address=$(hostname -I | awk '{print $1}')
           mkdir acc-log
           cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy
