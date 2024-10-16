@@ -82,6 +82,7 @@ function validate_service() {
     local DOCKER_NAME="$4"
     local INPUT_DATA="$5"
 
+    docker logs ${DOCKER_NAME}
     HTTP_RESPONSE=$(curl --silent --write-out "HTTPSTATUS:%{http_code}" -X POST -d "$INPUT_DATA" -H 'Content-Type: application/json' "$URL")
     HTTP_STATUS=$(echo $HTTP_RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
     RESPONSE_BODY=$(echo $HTTP_RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
@@ -201,6 +202,7 @@ function validate_microservices() {
 
 function validate_megaservice() {
     # Curl the Mega Service
+
     validate_service \
         "${ip_address}:8888/v1/chatqna" \
         "data: " \

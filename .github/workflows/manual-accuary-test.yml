@@ -120,9 +120,9 @@ jobs:
             else
               echo "ChatQnA dataset is ${dataset}."
             fi
-          elif [[ "${example}" == "FaQGen" ]]; then
+          elif [[ "${example}" == "FaqGen" ]]; then
             bash launch_"${example}".sh
-            export FAQ_ENDPOINT = "http://${your_ip}:9000/v1/faqgen"
+            export FAQ_ENDPOINT = "http://${ip_address}:9000/v1/faqgen"
             cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy
             sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
             # sed -i 's/with open("data\/sqv2_faq.json", "w") as outfile:/with open("\/data2\/opea-dataset\/FaqGen\/sqv2_faq.json", "w") as outfile:/g' post_process_FAQ.py
@@ -167,7 +167,7 @@ jobs:
           mkdir acc-log
           cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy
           if [[ "${example}" == "CodeGen " ]]; then
-            export CODEGEN_ENDPOINT="http://${your_ip}:7778/v1/codegen"
+            export CODEGEN_ENDPOINT="http://${ip_address}:7778/v1/codegen"
             export CODEGEN_MODEL="Qwen/CodeQwen1.5-7B-Chat"
             bash run_acc.sh $CODEGEN_MODEL $CODEGEN_ENDPOINT > ${{ github.workspace }}/acc-log/${example}.txt
           elif [[ "${example}" == "ChatQnA" ]]; then
