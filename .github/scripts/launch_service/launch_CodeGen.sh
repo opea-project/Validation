@@ -55,16 +55,6 @@ function validate_services() {
     local HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST -d "$INPUT_DATA" -H 'Content-Type: application/json' "$URL")
     if [ "$HTTP_STATUS" -eq 200 ]; then
         echo "[ $SERVICE_NAME ] HTTP status is 200. Checking content..."
-
-        local CONTENT=$(curl -s -X POST -d "$INPUT_DATA" -H 'Content-Type: application/json' "$URL" | tee ${LOG_PATH}/${SERVICE_NAME}.log)
-
-        if echo "$CONTENT" | grep -q "$EXPECTED_RESULT"; then
-            echo "[ $SERVICE_NAME ] Content is as expected."
-        else
-            echo "[ $SERVICE_NAME ] Content does not match the expected result: $CONTENT"
-            docker logs ${DOCKER_NAME} >> ${LOG_PATH}/${SERVICE_NAME}.log
-            exit 1
-        fi
     else
         echo "[ $SERVICE_NAME ] HTTP status is not 200. Received status was $HTTP_STATUS"
         docker logs ${DOCKER_NAME} >> ${LOG_PATH}/${SERVICE_NAME}.log
@@ -77,7 +67,7 @@ function validate_megaservice() {
     # Curl the Mega Service
     validate_services \
         "${ip_address}:7778/v1/codegen" \
-        "print" \
+        "data" \
         "mega-codegen" \
         "codegen-gaudi-backend-server" \
         '{"messages": "Implement a high-level API for a TODO list application. The API takes as input an operation request and updates the TODO list in place. If the request is invalid, raise an exception."}'

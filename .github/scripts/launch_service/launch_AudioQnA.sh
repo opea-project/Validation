@@ -10,6 +10,8 @@ ip_address=$(hostname -I | awk '{print $1}')
 function build_docker_images() {
     cd $WORKPATH
     echo $(pwd)
+    git clone https://github.com/opea-project/GenAIComps
+    cd GenAIComps
     docker build --no-cache -t opea/whisper:comps -f comps/asr/whisper/dependency/Dockerfile .
     if [ $? -ne 0 ]; then
         echo "opea/whisper built fail"
