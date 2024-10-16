@@ -37,10 +37,10 @@ jobs:
         id: get-matrix
         run: |
           # datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
-          datasets=($(echo "en,zh" | tr ',' ' '))
+          datasets=($(echo "en" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo "AudioQnA,CodeGen,FaqGen" | tr ',' ' '))  #,ChatQnA
+          examples=($(echo "AudioQnA,ChatQnA,CodeGen,FaqGen" | tr ',' ' '))  
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
