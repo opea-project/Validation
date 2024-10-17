@@ -56,7 +56,7 @@ runs:
       run: |
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
-        docker compose down
+        docker compose down --rmi all
       working-directory: ${{ inputs.work_dir }}
     - name: Remove Containers
       if: ${{ always() }}
