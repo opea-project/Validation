@@ -40,7 +40,7 @@ jobs:
           datasets=($(echo "en" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo "ChatQnA,CodeGen,FaqGen" | tr ',' ' '))  
+          examples=($(echo "AudioQnA" | tr ',' ' '))  
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
