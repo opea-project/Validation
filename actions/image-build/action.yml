@@ -13,6 +13,11 @@ inputs:
     description: Path with xxx-compose.yaml to build
     required: true
     type: string
+  service_list:
+    description: List of services to build
+    required: false
+    default: ""
+    type: string
   registry:
     description: Container Registry URL
     required: false
@@ -30,17 +35,20 @@ runs:
     - name: Build Containers
       shell: bash
       run: |
+        service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
+        echo $service_list
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
-        docker compose build --no-cache
+        docker compose build ${service_list} --no-cache
       working-directory: ${{ inputs.work_dir }}
     - name: Push Containers
       shell: bash
       run: |
+        service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
-        docker compose push
+        docker compose push ${service_list}
       working-directory: ${{ inputs.work_dir }}
     - name: Clean up Containers
       if: ${{ always() }}
