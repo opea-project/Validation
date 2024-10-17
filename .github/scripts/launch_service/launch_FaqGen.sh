@@ -100,7 +100,7 @@ function validate_microservices() {
         '{"query":"Text Embeddings Inference (TEI) is a toolkit for deploying and serving open source text embeddings and sequence classification models. TEI enables high-performance extraction for the most popular models, including FlagEmbedding, Ember, GTE and E5."}'
 }
 
-function validate_megaservice() {
+function validate() {
     # Curl the Mega Service
     validate_services \
     "${ip_address}:8888/v1/faqgen" \
@@ -108,6 +108,13 @@ function validate_megaservice() {
     "mega-faqgen" \
     "faqgen-gaudi-backend-server" \
     '{"messages": "Text Embeddings Inference (TEI) is a toolkit for deploying and serving open source text embeddings and sequence classification models. TEI enables high-performance extraction for the most popular models, including FlagEmbedding, Ember, GTE and E5."}'
+    # llm microservice
+    validate_services \
+    "${ip_address}:9000/v1/faqgen" \
+    "data: " \
+    "llm" \
+    "llm-faqgen-server" \
+    '{"query":"Text Embeddings Inference (TEI) is a toolkit for deploying and serving open source text embeddings and sequence classification models. TEI enables high-performance extraction for the most popular models, including FlagEmbedding, Ember, GTE and E5."}'
 }
 
 function validate_frontend() {
@@ -151,7 +158,7 @@ function main() {
     start_services
 
     # validate_microservices
-    validate_megaservice
+    validate #_megaservice
     # validate_frontend
 
     # stop_docker

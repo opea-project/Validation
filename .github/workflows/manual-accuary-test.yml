@@ -40,7 +40,7 @@ jobs:
           datasets=($(echo "en" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo "AudioQnA" | tr ',' ' '))  
+          examples=($(echo "CodeGen,ChatQnA" | tr ',' ' '))  
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -122,17 +122,24 @@ jobs:
             fi
           elif [[ "${example}" == "FaqGen" ]]; then
             bash launch_"${example}".sh
-            export FAQ_ENDPOINT = "http://${ip_address}:9000/v1/faqgen"
+            export FAQ_ENDPOINT="http://${ip_address}:9000/v1/faqgen"
             cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy
             sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
             # sed -i 's/with open("data\/sqv2_faq.json", "w") as outfile:/with open("\/data2\/opea-dataset\/FaqGen\/sqv2_faq.json", "w") as outfile:/g' post_process_FAQ.py
             sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
             # sed -i 's/with open("data\/sqv2_faq.json", "w") as outfile:/with open("\/data2\/opea-dataset\/FaqGen\/sqv2_faq.json", "w") as outfile:/g' evaluate.py
+            mkdir ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/data/result
             python generate_FAQ.py
             python post_process_FAQ.py
 
-            export HUGGING_FACE_HUB_TOKEN="${HUGGINGFACEHUB_API_TOKEN}"
-            bash launch_tgi.sh
+            volume=$PWD/data
+            model=meta-llama/Llama-2-7b-hf
+            docker run -tid -p 8080:80 -v $volume:/data --runtime=habana -e HABANA_VISIBLE_DEVICES=all  -e PT_HPU_LAZY_MODE=0 -e OMPI_MCA_btl_vader_single_copy_mechanism=none  -e HF_TOKEN=$HF_TOKEN --cap-add=sys_nice --ipc=host  ghcr.io/huggingface/tgi-gaudi:2.0.5 --model-id $model --max-input-tokens 1024 --max-total-tokens 2048
+            export LLM_ENDPOINT = "http://${ip_address}:8082"
+            curl http://${ip_address}:8082/generate \
+              -X POST \
+              -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128}}' \
+              -H 'Content-Type: application/json'
           else
             bash launch_"${example}".sh
             echo "${example}"
@@ -170,6 +177,8 @@ jobs:
           if [[ "${example}" == "CodeGen " ]]; then
             export CODEGEN_ENDPOINT="http://${ip_address}:7778/v1/codegen"
             export CODEGEN_MODEL="Qwen/CodeQwen1.5-7B-Chat"
+            cat run_acc.sh
+            cat main.py
             bash run_acc.sh $CODEGEN_MODEL $CODEGEN_ENDPOINT > ${{ github.workspace }}/acc-log/${example}.txt
           elif [[ "${example}" == "ChatQnA" ]]; then
             sed -i 's/--docs_path MultiHop-RAG\/dataset\/corpus.json/--docs_path \/data2\/opea-dataset\/${example}\/MultiHop-RAG\/dataset\/corpus.json/g' run_acc.sh
@@ -184,6 +193,7 @@ jobs:
                    '/python process_crud_dataset.py/d' run_acc.sh
             bash run_acc.sh ${dataset} > ${{ github.workspace }}/acc-log/${example}-${dataset}.txt
           elif [[ "${example}" == "AudioQnA" ]]; then
+            export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
             python online_eval.py > ${{ github.workspace }}/acc-log/${example}-${dataset}.txt
           fi
           bash run_acc.sh >  ${{ github.workspace }}/acc-log/${example}.txt
