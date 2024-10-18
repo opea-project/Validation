@@ -30,5 +30,6 @@ elif [[ "$1" == "ChatQnA" ]]; then
 elif [[ "$1" == "AudioQnA" ]]; then
     export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
     python online_eval.py
+else
+    bash run_acc.sh
 fi
-bash run_acc.sh

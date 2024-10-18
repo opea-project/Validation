@@ -40,7 +40,7 @@ jobs:
           datasets=($(echo "en" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo "ChatQnA,FaqGen" | tr ',' ' '))  
+          examples=($(echo "AudioQnA,FaqGen" | tr ',' ' '))  
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -173,28 +173,12 @@ jobs:
             volume=$PWD/data
             model=meta-llama/Llama-2-7b-hf
             docker run -tid -p 8080:80 -v $volume:/data --runtime=habana -e HABANA_VISIBLE_DEVICES=all  -e PT_HPU_LAZY_MODE=0 -e OMPI_MCA_btl_vader_single_copy_mechanism=none  -e HF_TOKEN=$HF_TOKEN --cap-add=sys_nice --ipc=host  ghcr.io/huggingface/tgi-gaudi:2.0.5 --model-id $model --max-input-tokens 1024 --max-total-tokens 2048
-            export LLM_ENDPOINT = "http://${ip_address}:8082"
+            export LLM_ENDPOINT="http://${ip_address}:8082"
             curl http://${ip_address}:8082/generate \
               -X POST \
               -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128}}' \
               -H 'Content-Type: application/json'
           fi
-      # - name: Launch Service of LLM-as-a-Judge
-      #   shell: bash
-      #   if: ${{ matrix.dataset }} == 'en' && ${{ matrix.dataset }} == 'ChatQnA'
-      #   env:
-      #     HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
-      #     HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      #     dataset: ${{ matrix.dataset }}
-      #     port: 9001
-      #   run: |
-      #     cd ${{ github.workspace }}/GenAIEval/
-      #     DPATH=$(dirname "$PWD")
-      #     export PYTHONPATH=$PYTHONPATH:$DPATH
-      #     export PATH=$PATH:/bin:/usr/bin
-      #     cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
-      #     # docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
-      #     docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
 
       - name: Run Evaluation
         env:
