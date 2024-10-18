@@ -189,11 +189,11 @@ jobs:
           port: 9001
         run: |
           set -x
-          mkdir acc-log
+          mkdir ../acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/launch_acc.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           ls
-          bash launch_acc.sh "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}.txt
+          bash launch_acc.sh "${example}" "${dataset}" > ${{ github.workspace }}/../acc-log/${example}-${dataset}.txt
 
           # cd ${{ github.workspace }}/GenAIEval/
           # DPATH=$(pwd)
