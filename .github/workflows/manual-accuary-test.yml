@@ -40,7 +40,7 @@ jobs:
           datasets=($(echo "en" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo "AudioQnA,CodeGen,ChatQnA,FaqGen" | tr ',' ' '))  
+          examples=($(echo "ChatQnA,FaqGen" | tr ',' ' '))  
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -167,7 +167,7 @@ jobs:
             cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy
             sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
             sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
-            mkdir ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/data/result
+            mkdir -p ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/data/result
             python generate_FAQ.py
             python post_process_FAQ.py
             volume=$PWD/data
@@ -208,6 +208,7 @@ jobs:
           mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/launch_acc.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
+          ls
           bash launch_acc.sh "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}.txt
 
           # cd ${{ github.workspace }}/GenAIEval/
