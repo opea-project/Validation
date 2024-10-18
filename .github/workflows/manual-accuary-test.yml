@@ -207,6 +207,7 @@ jobs:
           set -x
           mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/launch_acc.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
+          cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           bash launch_acc.sh "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}.txt
 
           # cd ${{ github.workspace }}/GenAIEval/
@@ -239,4 +240,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.example }}
-          payh: ${{ github.workspace }}/acc-log/${example}*.txt
+          path: ${{ github.workspace }}/acc-log/${example}*.txt
