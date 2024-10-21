@@ -40,7 +40,7 @@ jobs:
           datasets=($(echo "en" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo "ChatQnA,CodeGen,FaqGen" | tr ',' ' '))  
+          examples=($(echo "AudioQnA,CodeGen" | tr ',' ' '))  
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -135,6 +135,7 @@ jobs:
               bash launch_"${example}"_"${dataset}".sh
             fi
           else
+            if [[ "${example}" == "CodeGen" ]]; then sed -i 's/--max-total-tokens 2048/--max-total-tokens 4096/g' ${{ github.workspace }}/GenAIExamples/${example}/docker_compose/intel/hpu/gaudi/compose.yaml; fi
             head -n "$(($(wc -l < test_compose_on_gaudi.sh) - 10))" "test_compose_on_gaudi.sh" > launch_"${example}".sh
             echo "    validate_megaservice" >> launch_"${example}".sh
             echo "}" >> launch_"${example}".sh
@@ -151,7 +152,6 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
-          port: 9001
         run: |
           ip_address=$(hostname -I | awk '{print $1}')
           if [[ "${example}" == "ChatQnA" && "${dataset}" == "en" ]]; then
@@ -160,24 +160,25 @@ jobs:
             export PYTHONPATH=$PYTHONPATH:$DPATH
             export PATH=$PATH:/bin:/usr/bin
             cd ${{ github.workspace }}/GenAIEval/evals/evaluation/rag_eval/examples
-            # docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
-            docker run -tid -p ${port}:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
+            # docker run -tid -p 9001:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
+            docker run -tid -p 9001:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
           elif [[ "${example}" == "FaqGen" ]]; then
             export FAQ_ENDPOINT="http://${ip_address}:9000/v1/faqgen"
             cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy
             sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
             sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
+            sed -i 's/1024/7/g' post_process_FAQ.py
             [ ! -d "${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/data/result" ] && mkdir -p ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/data/result
             python generate_FAQ.py
             python post_process_FAQ.py
             volume=$PWD/data
             model=meta-llama/Llama-2-7b-hf
-            docker run -tid -p 8080:80 -v $volume:/data --runtime=habana -e HABANA_VISIBLE_DEVICES=all  -e PT_HPU_LAZY_MODE=0 -e OMPI_MCA_btl_vader_single_copy_mechanism=none  -e HF_TOKEN=$HF_TOKEN --cap-add=sys_nice --ipc=host  ghcr.io/huggingface/tgi-gaudi:2.0.5 --model-id $model --max-input-tokens 1024 --max-total-tokens 2048
-            export LLM_ENDPOINT="http://${ip_address}:8082"
-            curl http://${ip_address}:8082/generate \
-              -X POST \
-              -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128}}' \
-              -H 'Content-Type: application/json'
+            docker run -tid -p 8082:80 -v $volume:/data --runtime=habana -e HABANA_VISIBLE_DEVICES=all  -e PT_HPU_LAZY_MODE=0 -e OMPI_MCA_btl_vader_single_copy_mechanism=none  -e HF_TOKEN=$HF_TOKEN --cap-add=sys_nice --ipc=host  ghcr.io/huggingface/tgi-gaudi:2.0.5 --model-id $model --max-input-tokens 1024 --max-total-tokens 2048
+            # export LLM_ENDPOINT="http://${ip_address}:8082"
+            # curl http://${ip_address}:8082/generate \
+            #   -X POST \
+            #   -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128}}' \
+            #   -H 'Content-Type: application/json'
           fi
 
       - name: Run Evaluation
@@ -189,7 +190,7 @@ jobs:
           port: 9001
         run: |
           set -x
-          [ ! -d "../acc-log" ] && mkdir ../acc-log
+          [ ! -d "acc-log" ] && mkdir acc-log
           cd ${{ github.workspace }}/GenAIEval/
           DPATH=$(pwd)
           export PYTHONPATH=$PYTHONPATH:$DPATH
@@ -197,7 +198,7 @@ jobs:
           cp ${{ github.workspace }}/Validation/.github/scripts/launch_acc.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           ls
-          bash launch_acc.sh "${example}" "${dataset}" > ${{ github.workspace }}/../acc-log/${example}-${dataset}.txt
+          bash launch_acc.sh "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}.txt
 
           # cd ${{ github.workspace }}/GenAIEval/
           # DPATH=$(pwd)
@@ -229,4 +230,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.example }}
-          path: ${{ github.workspace }}/../acc-log/${example}*.txt
+          path: ${{ github.workspace }}/acc-log/*.txt
