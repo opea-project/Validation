@@ -4,7 +4,7 @@
 
 ip_address=$(hostname -I | awk '{print $1}')
 echo $1 $2
-if [[ "$1" == "CodeGen " ]]; then
+if [[ "$1" == "CodeGen" ]]; then
     export CODEGEN_ENDPOINT="http://${ip_address}:7778/v1/codegen"
     export CODEGEN_MODEL="Qwen/CodeQwen1.5-7B-Chat"
     cat run_acc.sh
