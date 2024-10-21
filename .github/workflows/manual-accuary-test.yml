@@ -40,7 +40,7 @@ jobs:
           datasets=($(echo "en" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo "AudioQnA,FaqGen" | tr ',' ' '))  
+          examples=($(echo "ChatQnA,CodeGen,FaqGen" | tr ',' ' '))  
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -167,7 +167,7 @@ jobs:
             cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy
             sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
             sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
-            mkdir -p ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/data/result
+            [ ! -d "${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/data/result" ] && mkdir -p ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/data/result
             python generate_FAQ.py
             python post_process_FAQ.py
             volume=$PWD/data
@@ -189,7 +189,11 @@ jobs:
           port: 9001
         run: |
           set -x
-          mkdir ../acc-log
+          [ ! -d "../acc-log" ] && mkdir ../acc-log
+          cd ${{ github.workspace }}/GenAIEval/
+          DPATH=$(pwd)
+          export PYTHONPATH=$PYTHONPATH:$DPATH
+          export PATH=$PATH:/bin:/usr/bin
           cp ${{ github.workspace }}/Validation/.github/scripts/launch_acc.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           ls
@@ -225,4 +229,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.example }}
-          path: ${{ github.workspace }}/acc-log/${example}*.txt
+          path: ${{ github.workspace }}/../acc-log/${example}*.txt
