@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       node_nums:
-        default: "1,2,4,8"
+        default: "1"
         description: "List of test node numbers, e.g., 1,2,4,8"
         required: true
         type: string
@@ -22,12 +22,12 @@ on:
         required: false
         type: string
       tag:
-        default: "1.0"
+        default: "latest"
         description: "Tag to apply to images"
         required: true
         type: string
       opea_branch:
-        default: "main"
+        default: "helmcharts_switch"
         description: "GenAIExamples branch to test manifests"
         required: true
         type: string
@@ -37,7 +37,7 @@ on:
         required: true
         type: string
       test_cases:
-        default: "e2e, embedserve, rerankserve, llmserve"
+        default: "e2e"
         description: "The test cases of chatqna, e.g., e2e, embedserve, rerankserve, llmserve"
         required: false
         type: string
@@ -83,40 +83,41 @@ jobs:
       matrix:
         node_num: ${{ fromJSON(needs.get-build-matrix.outputs.node_nums) }}
     steps:
-      - name: Clean Up Working Directory
-        run: sudo rm -rf ${{github.workspace}}/*
+#      - name: Clean Up Working Directory
+#        run: sudo rm -rf ${{github.workspace}}/*
 
       - name: Checkout out Validation
         uses: actions/checkout@v4
         with:
           path: Validation
 
-      - name: Checkout out GenAIExamples
-        uses: actions/checkout@v4
-        with:
-          repository: opea-project/GenAIExamples
-          ref: ${{ inputs.opea_branch }}
-          path: GenAIExamples
-
-      - name: Checkout out GenAIEval
-        uses: actions/checkout@v4
-        with:
-          repository: opea-project/GenAIEval
-          ref: ${{ inputs.eval_branch }}
-          path: GenAIEval
+#      - name: Checkout out GenAIExamples
+#        uses: actions/checkout@v4
+#        with:
+#          repository: opea-project/GenAIExamples
+#          ref: ${{ inputs.opea_branch }}
+#          path: GenAIExamples
+#
+#      - name: Checkout out GenAIEval
+#        uses: actions/checkout@v4
+#        with:
+#          repository: opea-project/GenAIEval
+#          ref: ${{ inputs.eval_branch }}
+#          path: GenAIEval
 
       - name: Set up stress tool
         run: |
-          if ! command -v yq &> /dev/null; then
-            sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
-            sudo chmod +x /usr/bin/yq
-          fi
-          pip install pandas # install python lib pandas for csv processing
-          cp Validation/.github/scripts/process_csv.py GenAIEval/evals/benchmark # copy process_csv.py to GenAIEval folder
-          cd GenAIEval
-          python3 -m venv stress_venv
+#          if ! command -v yq &> /dev/null; then
+#            sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+#            sudo chmod +x /usr/bin/yq
+#          fi
+#          pip install pandas # install python lib pandas for csv processing
+#          cp Validation/.github/scripts/process_csv.py GenAIEval/evals/benchmark # copy process_csv.py to GenAIEval folder
+#          cd GenAIEval
+#          python3 -m venv stress_venv
+#          source stress_venv/bin/activate
+#          pip install -r requirements.txt
           source stress_venv/bin/activate
-          pip install -r requirements.txt
 
           # config env values
           LOAD_SHAPE=$(echo "${{ inputs.load_config }}" | cut -d':' -f1 | xargs)
