@@ -68,8 +68,7 @@ function installChatQnA() {
 
     workflow=$(echo "${mode}" | cut -d':' -f1 | xargs)
     test_mode=$(echo "${mode}" | cut -d':' -f2 | xargs)
-    cd ChatQnA/benchmark/performance/helm_charts
-    python deployment.py --workflow=${workflow} --mode=${test_mode} --num_nodes=${num_gaudi}
+    python $mpath/deployment.py --workflow=${workflow} --mode=${test_mode} --num_nodes=${num_gaudi}
     wait_until_all_pod_ready $namespace 300s
     sleep 120s
 
