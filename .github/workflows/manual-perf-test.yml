@@ -83,27 +83,27 @@ jobs:
       matrix:
         node_num: ${{ fromJSON(needs.get-build-matrix.outputs.node_nums) }}
     steps:
-#      - name: Clean Up Working Directory
-#        run: sudo rm -rf ${{github.workspace}}/*
+      - name: Clean Up Working Directory
+        run: sudo rm -rf ${{github.workspace}}/*
 
       - name: Checkout out Validation
         uses: actions/checkout@v4
         with:
           path: Validation
 
-#      - name: Checkout out GenAIExamples
-#        uses: actions/checkout@v4
-#        with:
-#          repository: opea-project/GenAIExamples
-#          ref: ${{ inputs.opea_branch }}
-#          path: GenAIExamples
-#
-#      - name: Checkout out GenAIEval
-#        uses: actions/checkout@v4
-#        with:
-#          repository: opea-project/GenAIEval
-#          ref: ${{ inputs.eval_branch }}
-#          path: GenAIEval
+      - name: Checkout out GenAIExamples
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIExamples
+          ref: ${{ inputs.opea_branch }}
+          path: GenAIExamples
+
+      - name: Checkout out GenAIEval
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIEval
+          ref: ${{ inputs.eval_branch }}
+          path: GenAIEval
 
       - name: Set up stress tool
         run: |
