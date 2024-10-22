@@ -107,16 +107,16 @@ jobs:
 
       - name: Set up stress tool
         run: |
-#          if ! command -v yq &> /dev/null; then
-#            sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
-#            sudo chmod +x /usr/bin/yq
-#          fi
-#          pip install pandas # install python lib pandas for csv processing
-#          cp Validation/.github/scripts/process_csv.py GenAIEval/evals/benchmark # copy process_csv.py to GenAIEval folder
-#          cd GenAIEval
-#          python3 -m venv stress_venv
-#          source stress_venv/bin/activate
-#          pip install -r requirements.txt
+          if ! command -v yq &> /dev/null; then
+            sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+            sudo chmod +x /usr/bin/yq
+          fi
+          pip install pandas # install python lib pandas for csv processing
+          cp Validation/.github/scripts/process_csv.py GenAIEval/evals/benchmark # copy process_csv.py to GenAIEval folder
+          cd GenAIEval
+          python3 -m venv stress_venv
+          source stress_venv/bin/activate
+          pip install -r requirements.txt
           source stress_venv/bin/activate
 
           # config env values
