@@ -6,9 +6,14 @@ name: Run performance test on a Kubernetes cluster
 on:
   workflow_dispatch:
     inputs:
-      nodenums:
+      node_nums:
         default: "1,2,4,8"
         description: "List of test node numbers, e.g., 1,2,4,8"
+        required: true
+        type: string
+      mode:
+        default: "with_rerank:tuned"
+        description: "The mode of the test, e.g., with_rerank:tuned"
         required: true
         type: string
       registry:
@@ -22,7 +27,7 @@ on:
         required: true
         type: string
       opea_branch:
-        default: "v1.0rc"
+        default: "main"
         description: "GenAIExamples branch to test manifests"
         required: true
         type: string
@@ -31,22 +36,17 @@ on:
         description: "GenAIEval branch to test manifests"
         required: true
         type: string
-      mode:
-        default: "oob/with_rerank"
-        description: "The folder under GenAIExamples/ChatQnA/benchmark/performance/<mode>/*_node"
-        required: false
-        type: string
-      testcases:
+      test_cases:
         default: "e2e, embedserve, rerankserve, llmserve"
         description: "The test cases of chatqna, e.g., e2e, embedserve, rerankserve, llmserve"
         required: false
         type: string
-      # userqueries:
+      # user_queries:
       #   default: ''
       #   description: "The user query list, e.g., '4, 8, 16, 640', empty input means the default setting."
       #   required: false
       #   type: string
-      loadconfig:
+      load_config:
         default: "constant:5"
         description: "configuration for load test in format load_type:value, constant:5 or poisson:1.0"
         required: false
@@ -66,22 +66,22 @@ jobs:
   get-build-matrix:
     runs-on: ubuntu-latest
     outputs:
-      nodenums: ${{ steps.get-services.outputs.nodenums }}
+      node_nums: ${{ steps.get-services.outputs.node_nums }}
     steps:
       - name: Get test Services
         id: get-services
         run: |
           set -x
-          nodenum_list=($(echo ${{ github.event.inputs.nodenums }} | tr ',' ' '))
-          nodenums=$(printf '%s\n' "${nodenum_list[@]}" | sort | jq -R '.' | jq -sc '.')
-          echo "nodenums=$nodenums" >> $GITHUB_OUTPUT
+          node_num_list=($(echo ${{ github.event.inputs.node_nums }} | tr ',' ' '))
+          node_nums=$(printf '%s\n' "${node_num_list[@]}" | sort | jq -R '.' | jq -sc '.')
+          echo "node_nums=$node_nums" >> $GITHUB_OUTPUT
 
   run-benchmark:
     needs: [get-build-matrix]
     runs-on: "${{ inputs.runner }}"
     strategy:
       matrix:
-        node_num: ${{ fromJSON(needs.get-build-matrix.outputs.nodenums) }}
+        node_num: ${{ fromJSON(needs.get-build-matrix.outputs.node_nums) }}
     steps:
       - name: Clean Up Working Directory
         run: sudo rm -rf ${{github.workspace}}/*
@@ -118,9 +118,9 @@ jobs:
           source stress_venv/bin/activate
           pip install -r requirements.txt
 
-          #config env values
-          LOAD_SHAPE=$(echo "${{ inputs.loadconfig }}" | cut -d':' -f1 | xargs)
-          second_part=$(echo "${{ inputs.loadconfig }}" | cut -d':' -f2 | xargs)
+          # config env values
+          LOAD_SHAPE=$(echo "${{ inputs.load_config }}" | cut -d':' -f1 | xargs)
+          second_part=$(echo "${{ inputs.load_config }}" | cut -d':' -f2 | xargs)
           if [ "$LOAD_SHAPE" == "constant" ]; then
               echo "LOAD_SHAPE=$LOAD_SHAPE" >> $GITHUB_ENV
               echo "CONCURRENT_LEVEL=$second_part" >> $GITHUB_ENV
@@ -136,8 +136,8 @@ jobs:
         working-directory: ./Validation
         env:
           TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
-          TEST_CASES: ${{ inputs.testcases }}
-          USER_QUERIES: ${{ inputs.userqueries }}
+          TEST_CASES: ${{ inputs.test_cases }}
+          USER_QUERIES: ${{ inputs.user_queries }}
         run: |
           rm -rf $TEST_OUTPUT_DIR
           .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
@@ -158,9 +158,6 @@ jobs:
           IMAGE_REPO: ${{ inputs.registry }}
           IMAGE_TAG: ${{ inputs.tag }}
           HF_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
-          LLM_MODEL_ID: "Intel/neural-chat-7b-v3-3"
-          EMBEDDING_MODEL_ID: "BAAI/bge-base-en-v1.5"
-          RERANK_MODEL_ID: "BAAI/bge-reranker-base"
           MODE: ${{ inputs.mode }}
         run: |
           echo "uninstall=true" >> $GITHUB_ENV
@@ -170,7 +167,7 @@ jobs:
         working-directory: ./GenAIEval
         env:
           TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
-          TEST_CASES: ${{ inputs.testcases }}
+          TEST_CASES: ${{ inputs.test_cases }}
         run: |
           source stress_venv/bin/activate
           cd evals/benchmark
