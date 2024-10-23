@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -xe
-nodelabel="node-type=chatqna-opea"
+nodelabel="node-type=opea"
 nodeunlabel="node-type-"
 namespace="default"
 modelpath="/mnt/models"
@@ -17,7 +17,6 @@ function label() {
     label_nums=$1
     cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
     node_count=$(kubectl get nodes --no-headers | wc -l)
-    cluster_node_names="aise-gaudi-02"
 
     # get control plane name
     cluster_control_plane_name=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o custom-columns=NAME:.metadata.name --no-headers)
@@ -30,7 +29,7 @@ function label() {
         if [ "$node_name" == "$cluster_control_plane_name" ] && [ "$label_nums" -lt "$node_count" ]; then
             continue
         fi
-        kubectl label nodes $node_name $nodelabel
+        kubectl label nodes $node_name $nodelabel --overwrite
         label_count=$((label_count+1))
         if [ "$label_count" -ge "$label_nums" ]; then
             break

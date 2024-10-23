@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       mode:
-        default: "with_rerank:tuned"
+        default: "with_rerank:oob"
         description: "The mode of the test, e.g., with_rerank:tuned"
         required: true
         type: string
