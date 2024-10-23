@@ -68,9 +68,11 @@ function installChatQnA() {
 
     workflow=$(echo "${mode}" | cut -d':' -f1 | xargs)
     test_mode=$(echo "${mode}" | cut -d':' -f2 | xargs)
-    python $mpath/deployment.py --workflow=${workflow} --mode=${test_mode} --num_nodes=${num_gaudi}
+    pushd $mpath
+    python deployment.py --workflow=${workflow} --mode=${test_mode} --num_nodes=${num_gaudi}
     wait_until_all_pod_ready $namespace 300s
     sleep 120s
+    popd
 
     #Clean database
     db_host=$(kubectl -n $namespace get svc vector-db -o jsonpath='{.spec.clusterIP}')
