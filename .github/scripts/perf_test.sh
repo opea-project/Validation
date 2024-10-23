@@ -147,7 +147,7 @@ function generate_config(){
     output_path="../GenAIEval/evals/benchmark/benchmark.yaml"
 
     if [ "$num_gaudi" -eq 1 ]; then
-        DEFAULT_USER_QUERIES="128, 128, 128, 128, 128, 128, 128, 128, 128"
+        DEFAULT_USER_QUERIES="640, 640, 640, 640, 640, 640, 640, 640"
     elif [ "$num_gaudi" -eq 2 ]; then
         DEFAULT_USER_QUERIES="1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280"
     elif [ "$num_gaudi" -eq 4 ]; then
