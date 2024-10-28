@@ -108,7 +108,6 @@ case "$1" in
         ;;
     *)
         echo "Unknown option: $1"
-        usage
         exit 1
         ;;
 esac
