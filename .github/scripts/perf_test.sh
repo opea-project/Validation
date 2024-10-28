@@ -56,7 +56,7 @@ function installChatQnA() {
         find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/*#image: ${IMAGE_REPO}/opea/#g" {} \;
     fi
     find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\${HF_TOKEN}#${HF_TOKEN}#g" {} \;
-    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
+    #find $mpath/ -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
     #find $mpath/ -name '*.yaml' -type f -exec sed -i "s#namespace: default#namespace: ${namespace}#g" {} \;
 
     if kubectl get namespace "$namespace" > /dev/null 2>&1; then
