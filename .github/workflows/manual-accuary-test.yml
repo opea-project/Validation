@@ -36,11 +36,10 @@ jobs:
       - name: Create Matrix
         id: get-matrix
         run: |
-          # datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
-          datasets=($(echo "en" | tr ',' ' '))
+          datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo "CodeGen" | tr ',' ' '))  
+          examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -164,3 +163,19 @@ jobs:
         with:
           name: ${{ matrix.example }}
           path: ${{ github.workspace }}/acc-log/*.txt
+
+  Process-test-log:
+    runs-on: aise-acc
+    needs: setup-acc
+    steps:
+      - name: Publish pipeline artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        run: |
+          cat ${{ github.workspace }}/acc-log/*.txt > acc-log/summary.txt
+          
+      - name: Publish pipeline artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ github.workspace }}/acc-log/summary.txt
