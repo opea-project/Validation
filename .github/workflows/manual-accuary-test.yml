@@ -40,7 +40,7 @@ jobs:
           datasets=($(echo "en" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo "AudioQnA" | tr ',' ' '))  
+          examples=($(echo "CodeGen" | tr ',' ' '))  
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -147,7 +147,7 @@ jobs:
           #   cat launch_"${example}".sh
           #   bash launch_"${example}".sh
           # fi
-          
+
       - name: Evaluation Prepare
         shell: bash
         if: ${{ matrix.dataset }} == 'en' && ${{ matrix.dataset }} == 'ChatQnA'
@@ -200,14 +200,8 @@ jobs:
         run: |
           set -x
           [ ! -d "acc-log" ] && mkdir acc-log
-          cd ${{ github.workspace }}/GenAIEval/
-          DPATH=$(pwd)
-          export PYTHONPATH=$PYTHONPATH:$DPATH
-          export PATH=$PATH:/bin:/usr/bin
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          ls
-          bash acc_test.sh --acc_test "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_acc "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
           # cd ${{ github.workspace }}/GenAIEval/
           # DPATH=$(pwd)
           # export PYTHONPATH=$PYTHONPATH:$DPATH

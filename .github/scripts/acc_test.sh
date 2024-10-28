@@ -15,14 +15,12 @@ function launch_service(){
             echo "main" >> launch_"$1"_"$2".sh
             sed -i 's/export EMBEDDING_MODEL_ID="BAAI\/bge-base-en-v1.5"/export EMBEDDING_MODEL_ID="BAAI\/bge-base-zh-v1.5"/' launch_"$1"_"$2".sh
             sed -i 's/export LLM_MODEL_ID="Intel\/neural-chat-7b-v3-3"/export LLM_MODEL_ID="Qwen\/Qwen2-7B-Instruct"/' launch_"$1"_"$2".sh
-            cat launch_"$1"_"$2".sh
             bash launch_"$1"_"$2".sh
         else
             head -n "$(($(wc -l < test_compose_on_gaudi.sh) - 14))" "test_compose_on_gaudi.sh" > launch_"$1"_"$2".sh
             echo "    validate_megaservice" >> launch_"$1"_"$2".sh
             echo "}" >> launch_"$1"_"$2".sh
             echo "main" >> launch_"$1"_"$2".sh
-            cat launch_"$1"_"$2".sh
             bash launch_"$1"_"$2".sh
         fi
     else
@@ -31,7 +29,6 @@ function launch_service(){
         echo "    validate_megaservice" >> launch_"$1".sh
         echo "}" >> launch_"$1".sh
         echo "main" >> launch_"$1".sh
-        cat launch_"$1".sh
         bash launch_"$1".sh
     fi
 }
@@ -65,6 +62,11 @@ function eval_prepare(){
 }
 
 function launch_acc(){
+    cd $WORKPATH/GenAIEval/
+    DPATH=$(dirname "$PWD")
+    export PYTHONPATH=$PYTHONPATH:$DPATH
+    export PATH=$PATH:/bin:/usr/bin
+    cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy/
 	if [[ "$1" == "CodeGen" ]]; then
         export CODEGEN_ENDPOINT="http://${ip_address}:7778/v1/codegen"
         export CODEGEN_MODEL="Qwen/CodeQwen1.5-7B-Chat"
