@@ -115,8 +115,6 @@ jobs:
         run: |
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          # cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          ls
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
 
       - name: Evaluation Prepare
@@ -130,8 +128,6 @@ jobs:
         run: |
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          # cd ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          ls
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
 
       - name: Run Evaluation
@@ -166,13 +162,15 @@ jobs:
 
   Process-test-log:
     runs-on: aise-acc
-    needs: setup-acc
+    needs: [setup-acc, get-test-matrix]
     steps:
-      - name: Publish pipeline artifact
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        run: |
-          cat ${{ github.workspace }}/acc-log/*.txt > acc-log/summary.txt
+      -name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.get-test-matrix.outputs.examples }}
+          path: ${{ github.workspace }}/acc-log/
+      - name: Use the downloaded artifact
+        run: cat ${{ github.workspace }}/acc-log/*.txt > acc-log/summary.txt
           
       - name: Publish pipeline artifact
         if: ${{ !cancelled() }}
