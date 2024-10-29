@@ -1,0 +1,220 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+name: Run performance test on a Kubernetes cluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      nodenums:
+        default: "1,2,4,8"
+        description: "List of test node numbers, e.g., 1,2,4,8"
+        required: true
+        type: string
+      registry:
+        default: ""
+        description: "Registry to store images, empty string means docker.io, default is empty"
+        required: false
+        type: string
+      tag:
+        default: "1.0"
+        description: "Tag to apply to images"
+        required: true
+        type: string
+      opea_branch:
+        default: "v1.0rc"
+        description: "GenAIExamples branch to test manifests"
+        required: true
+        type: string
+      eval_branch:
+        default: "main"
+        description: "GenAIEval branch to test manifests"
+        required: true
+        type: string
+      mode:
+        default: "oob/with_rerank"
+        description: "The folder under GenAIExamples/ChatQnA/benchmark/performance/<mode>/*_node"
+        required: false
+        type: string
+      testcases:
+        default: "e2e, embedserve, rerankserve, llmserve"
+        description: "The test cases of chatqna, e.g., e2e, embedserve, rerankserve, llmserve"
+        required: false
+        type: string
+      # userqueries:
+      #   default: ''
+      #   description: "The user query list, e.g., '4, 8, 16, 640', empty input means the default setting."
+      #   required: false
+      #   type: string
+      loadconfig:
+        default: "constant:5"
+        description: "configuration for load test in format load_type:value, constant:5 or poisson:1.0"
+        required: false
+        type: string
+      cleanup:
+        default: true
+        description: "Whether to clean up the pods and the labels"
+        required: true
+        type: boolean
+      runner:
+        default: "aise-perf"
+        description: "Runner label"
+        required: true
+        type: string
+
+jobs:
+  get-build-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      nodenums: ${{ steps.get-services.outputs.nodenums }}
+    steps:
+      - name: Get test Services
+        id: get-services
+        run: |
+          set -x
+          nodenum_list=($(echo ${{ github.event.inputs.nodenums }} | tr ',' ' '))
+          nodenums=$(printf '%s\n' "${nodenum_list[@]}" | sort | jq -R '.' | jq -sc '.')
+          echo "nodenums=$nodenums" >> $GITHUB_OUTPUT
+
+  run-benchmark:
+    needs: [get-build-matrix]
+    runs-on: "${{ inputs.runner }}"
+    strategy:
+      matrix:
+        node_num: ${{ fromJSON(needs.get-build-matrix.outputs.nodenums) }}
+    steps:
+      - name: Clean Up Working Directory
+        run: sudo rm -rf ${{github.workspace}}/*
+
+      - name: Checkout out Validation
+        uses: actions/checkout@v4
+        with:
+          path: Validation
+
+      - name: Checkout out GenAIExamples
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIExamples
+          ref: ${{ inputs.opea_branch }}
+          path: GenAIExamples
+
+      - name: Checkout out GenAIEval
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIEval
+          ref: ${{ inputs.eval_branch }}
+          path: GenAIEval
+
+      - name: Set up stress tool
+        run: |
+          if ! command -v yq &> /dev/null; then
+            sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+            sudo chmod +x /usr/bin/yq
+          fi
+          pip install pandas # install python lib pandas for csv processing
+          cp Validation/.github/scripts/process_csv.py GenAIEval/evals/benchmark # copy process_csv.py to GenAIEval folder
+          cd GenAIEval
+          python3 -m venv stress_venv
+          source stress_venv/bin/activate
+          pip install -r requirements.txt
+
+          #config env values
+          LOAD_SHAPE=$(echo "${{ inputs.loadconfig }}" | cut -d':' -f1 | xargs)
+          second_part=$(echo "${{ inputs.loadconfig }}" | cut -d':' -f2 | xargs)
+          if [ "$LOAD_SHAPE" == "constant" ]; then
+              echo "LOAD_SHAPE=$LOAD_SHAPE" >> $GITHUB_ENV
+              echo "CONCURRENT_LEVEL=$second_part" >> $GITHUB_ENV
+          elif [ "$LOAD_SHAPE" == "poisson" ]; then
+              echo "LOAD_SHAPE=$LOAD_SHAPE" >> $GITHUB_ENV
+              echo "ARRIVAL_RATE=$second_part" >> $GITHUB_ENV
+          else
+              echo "Unknown LOAD_SHAPE: $LOAD_SHAPE"
+          fi
+
+      - name: Prepare benchmark configuration
+        id: prepare_benchmark
+        working-directory: ./Validation
+        env:
+          TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
+          TEST_CASES: ${{ inputs.testcases }}
+          USER_QUERIES: ${{ inputs.userqueries }}
+        run: |
+          rm -rf $TEST_OUTPUT_DIR
+          .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
+          echo "uncordon=false" >> $GITHUB_ENV
+          echo "uninstall=false" >> $GITHUB_ENV
+          echo "randomstr=$(echo $RANDOM)" >> $GITHUB_OUTPUT
+          echo "TEST_OUTPUT_DIR=$TEST_OUTPUT_DIR" >> $GITHUB_ENV
+
+      - name: K8s Label Nodes
+        working-directory: ./Validation
+        run: |
+          echo "uncordon=true" >> $GITHUB_ENV
+          .github/scripts/perf_test.sh --label ${{ matrix.node_num }}
+
+      - name: Install Workload
+        working-directory: ./Validation
+        env:
+          IMAGE_REPO: ${{ inputs.registry }}
+          IMAGE_TAG: ${{ inputs.tag }}
+          HF_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          LLM_MODEL_ID: "Intel/neural-chat-7b-v3-3"
+          EMBEDDING_MODEL_ID: "BAAI/bge-base-en-v1.5"
+          RERANK_MODEL_ID: "BAAI/bge-reranker-base"
+          MODE: ${{ inputs.mode }}
+        run: |
+          echo "uninstall=true" >> $GITHUB_ENV
+          .github/scripts/perf_test.sh --installChatQnA ${{ matrix.node_num }} ../GenAIExamples
+
+      - name: Stress Test
+        working-directory: ./GenAIEval
+        env:
+          TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
+          TEST_CASES: ${{ inputs.testcases }}
+        run: |
+          source stress_venv/bin/activate
+          cd evals/benchmark
+          python benchmark.py
+          
+          ${{ github.workspace }}/Validation/.github/scripts/perf_test.sh --process_result_data
+          cp $TEST_OUTPUT_DIR/*_result.csv ${{ github.workspace }}
+          cp $TEST_OUTPUT_DIR/*_testspec.yaml ${{ github.workspace }}
+          tar -cvf ${{ github.workspace }}/node_${{ matrix.node_num }}.tar $TEST_OUTPUT_DIR/*_result.csv $TEST_OUTPUT_DIR/*_testspec.yaml
+
+      - name: Print Test Result
+        run: |
+          for file in "${{ github.workspace }}"/*_result.csv; do
+              if [[ -f "$file" ]]; then
+                  echo "Printing contents of: $file"
+                  cat "$file"
+                  echo "-----------------------------------"
+              fi
+          done
+          spec_file=$(find "${{ github.workspace }}" -maxdepth 1 -name '*_testspec.yaml' | head -n 1)
+          echo "Dump test specification: $spec_file"
+          cat "$spec_file"
+
+      - uses: actions/upload-artifact@v4.3.4
+        with:
+          name: ${{ matrix.node_num }}node_raw_data_tar_${{ steps.prepare_benchmark.outputs.randomstr }}
+          path: node_${{ matrix.node_num }}.tar
+          overwrite: true
+
+      - name: Uninstall Workload
+        if: always()
+        working-directory: ./Validation
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          if [[ "$uninstall" == true && "${{ inputs.cleanup }}" == true ]]; then
+            .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+            sleep 120s
+          fi
+
+      - name: K8s Unlabel Nodes
+        if: always()
+        working-directory: ./Validation
+        run: |
+          if [[ "$uncordon" == true && "${{ inputs.cleanup }}" == true ]]; then
+            .github/scripts/perf_test.sh --unlabel
+          fi
