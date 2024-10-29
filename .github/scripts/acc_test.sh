@@ -38,29 +38,29 @@ function eval_prepare(){
         DPATH=$(dirname "$PWD")
         export PYTHONPATH=$PYTHONPATH:$DPATH
         export PATH=$PATH:/bin:/usr/bin
-        cd $WORKPATH/GenAIEval/evals/evaluation/rag_eval/examples
-        # docker run -tid -p 9001:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
-        docker run -tid -p 9001:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
+        # cd $WORKPATH/GenAIEval/evals/evaluation/rag_eval/examples
+        # # docker run -tid -p 9001:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
+        # docker run -tid -p 8005:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
     elif [[ "$1" == "FaqGen" ]]; then
         export FAQ_ENDPOINT="http://${ip_address}:9000/v1/faqgen"
         cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy
         sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
         sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
-        sed -i 's/1024/7/g' post_process_FAQ.py
+        sed -i 's/1204/120/g' generate_FAQ.py
+        sed -i 's/1204/120/g' post_process_FAQ.py
         [ ! -d "$WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result" ] && mkdir -p $WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result
         python generate_FAQ.py
         python post_process_FAQ.py
-        # volume=$PWD/data
-        # model=meta-llama/Llama-2-7b-hf
-        # docker run -tid -p 8082:80 -v $volume:/data --runtime=habana -e HABANA_VISIBLE_DEVICES=all  -e PT_HPU_LAZY_MODE=0 -e OMPI_MCA_btl_vader_single_copy_mechanism=none  -e HF_TOKEN=$HF_TOKEN --cap-add=sys_nice --ipc=host  ghcr.io/huggingface/tgi-gaudi:2.0.5 --model-id $model --max-input-tokens 3072 --max-total-tokens 4096 
-        max_input_tokens=3072
-        max_total_tokens=4096
-        port_number=8082
-        model_name="mistralai/Mixtral-8x7B-Instruct-v0.1"
-        volume="./data"
-        docker run -dit --rm --name="tgi_Mixtral" -p $port_number:80 -v $volume:/data --runtime=habana --restart always -e HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN -e HABANA_VISIBLE_DEVICES=all -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true --cap-add=sys_nice --ipc=host -e HTTPS_PROXY=$https_proxy -e HTTP_PROXY=$https_proxy ghcr.io/huggingface/tgi-gaudi:2.0.5 --model-id $model_name --max-input-tokens $max_input_tokens --max-total-tokens $max_total_tokens --sharded true --num-shard 2
-        export LLM_ENDPOINT="http://${ip_address}:8082"
-        curl http://${ip_address}:8082/generate \
+        # # max_input_tokens=3072
+        # # max_total_tokens=4096
+        # # port_number=8082
+        # # model_name="mistralai/Mixtral-8x7B-Instruct-v0.1"
+        # # volume="./data"
+        # # docker run -dit --rm --name="tgi_Mixtral" -p $port_number:80 -v $volume:/data --runtime=habana -e HUGGING_FACE_HUB_TOKEN=$HUGGING_FACE_HUB_TOKEN -e HABANA_VISIBLE_DEVICES=all -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true --cap-add=sys_nice --ipc=host -e HTTPS_PROXY=$https_proxy -e HTTP_PROXY=$https_proxy ghcr.io/huggingface/tgi-gaudi:2.0.5 --model-id $model_name --max-input-tokens $max_input_tokens --max-total-tokens $max_total_tokens --sharded true --num-shard 2
+        # docker run -tid -p 8082:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.5 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 3072 --max-total-tokens 4096 --sharded true --num-shard 2
+        # sleep 600
+        export LLM_ENDPOINT="http://${ip_address}:8008"
+        curl http://${ip_address}:8008/generate \
           -X POST \
           -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128}}' \
           -H 'Content-Type: application/json'
@@ -72,6 +72,7 @@ function launch_acc(){
     DPATH=$(dirname "$PWD")
     export PYTHONPATH=$PYTHONPATH:$DPATH
     export PATH=$PATH:/bin:/usr/bin
+    echo $PATH
     cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy/
 	if [[ "$1" == "CodeGen" ]]; then
         export CODEGEN_ENDPOINT="http://${ip_address}:7778/v1/codegen"

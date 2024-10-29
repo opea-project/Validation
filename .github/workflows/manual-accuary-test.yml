@@ -39,7 +39,7 @@ jobs:
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
           # examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
-          examples=($(echo "FaqGen" | tr ',' ' ')) 
+          examples=($(echo "ChatQnA,FaqGen" | tr ',' ' ')) 
           #,AudioQnA,CodeGen" | tr ',' ' '))
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
@@ -136,6 +136,8 @@ jobs:
         run: |
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
+          pwd
+          ls
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
 
       - name: Run Evaluation
@@ -148,6 +150,11 @@ jobs:
         run: |
           set -x
           [ ! -d "acc-log" ] && mkdir acc-log
+          cd ${{ github.workspace }}/GenAIEval/
+          DPATH=$(dirname "$PWD")
+          export PYTHONPATH=$PYTHONPATH:$DPATH
+          export PATH=$PATH:/bin:/usr/bin
+          echo $PATH
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_acc "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
 
