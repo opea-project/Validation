@@ -16,8 +16,8 @@ on:
         description: "List of services to test [en, zh]"
         required: true
         type: string
-  push:
-    branches: ["main"]
+  pull_request:
+    branches: [main]
     types: [opened, reopened, ready_for_review, synchronize]
 
 concurrency:
@@ -39,7 +39,8 @@ jobs:
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
           # examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
-          examples=($(echo "AudioQnA","CodeGen" | tr ',' ' '))
+          examples=($(echo "FaqGen" | tr ',' ' ')) 
+          #,AudioQnA,CodeGen" | tr ',' ' '))
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -107,6 +108,8 @@ jobs:
             pip install -r requirements.txt
           elif [[ "${example}" == "CodeGen" ]]; then
             pip install -e .
+          elif [[ "${example}" == "FaqGen" ]]; then
+            pip install ragas==0.1.19
           fi
 
       - name: Launch Service
@@ -119,6 +122,7 @@ jobs:
         run: |
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
+          export HUGGING_FACE_HUB_TOKEN=${HUGGINGFACEHUB_API_TOKEN}
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
 
       - name: Evaluation Prepare
