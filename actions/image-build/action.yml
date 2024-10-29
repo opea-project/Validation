@@ -35,12 +35,23 @@ runs:
     - name: Build Containers
       shell: bash
       run: |
+        cd ${{ inputs.work_dir }}
+        COMMIT_SHA=$(git rev-parse --short HEAD)
+        COMMIT_MESSAGE=$(git log -1 --pretty=%B)
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         echo $service_list
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
+        sed -i '/dockerfile: /a\'"      args:\n        COMMIT_SHA: \${COMMIT_SHA}\n        COMMIT_MESSAGE: \${COMMIT_MESSAGE}" ${{ inputs.work_dir }}/docker-compose.yaml
+        cat ${{ inputs.work_dir }}/docker-compose.yaml
+        paths=($(grep -oP 'dockerfile:\s*\K.*' ${{ inputs.work_dir }}/docker-compose.yaml))
+        for path in "${paths[@]}"; do
+          echo "Found dockerfile: $dockerfile"
+          sed -i '/FROM /a\'"\nARG COMMIT_SHA\nARG COMMIT_MESSAGE\nLABEL commit.sha=\$COMMIT_SHA\nLABEL commit.message=\$COMMIT_MESSAGE" ${{ inputs.work_dir }}/$path
+        done
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
-        docker compose build ${service_list} --no-cache
+        docker compose build ${service_list} --no-cache --build-arg COMMIT_SHA=$COMMIT_SHA --build-arg COMMIT_MESSAGE="$COMMIT_MESSAGE"
+        docker inspect ${REGISTRY:-opea}/${service_list}
       working-directory: ${{ inputs.work_dir }}
     - name: Push Containers
       shell: bash
