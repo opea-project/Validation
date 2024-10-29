@@ -165,7 +165,7 @@ jobs:
           name: ${{ needs.get-test-matrix.outputs.examples }}
           path: ${{ github.workspace }}/acc-log/
       - name: Use the downloaded artifact
-        run: cat ${{ github.workspace }}/acc-log/*.txt > acc-log/summary.txt
+        run: cat ${{ github.workspace }}/acc-log/*acc_test.txt > acc-log/summary.txt
           
       - name: Publish pipeline artifact
         if: ${{ !cancelled() }}
