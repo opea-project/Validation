@@ -155,7 +155,7 @@ jobs:
     runs-on: aise-acc
     needs: [setup-acc, get-test-matrix]
     steps:
-      -name: Download artifact
+      - name: Download artifact
         uses: actions/download-artifact@v3
         with:
           name: ${{ needs.get-test-matrix.outputs.examples }}
