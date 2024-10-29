@@ -16,14 +16,6 @@ on:
         description: "List of services to test [en, zh]"
         required: true
         type: string
-  pull_request:
-      branches: [main]
-      types: [opened, reopened, ready_for_review, synchronize]
-
-# If there is a new commit, the previous jobs will be canceled
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 jobs:
   get-test-matrix:
@@ -35,12 +27,10 @@ jobs:
       - name: Create Matrix
         id: get-matrix
         run: |
-          # datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
-          datasets=($(echo "en,zh" | tr ',' ' '))
+          datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          # examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
-          examples=($(echo "AudioQnA,ChatQnA,CodeGen,FaqGen" | tr ',' ' '))
+          examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
