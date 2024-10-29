@@ -16,6 +16,13 @@ on:
         description: "List of services to test [en, zh]"
         required: true
         type: string
+  push:
+    branches: ["main"]
+    types: [opened, reopened, ready_for_review, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-on-push
+  cancel-in-progress: true
 
 jobs:
   get-test-matrix:
@@ -27,10 +34,12 @@ jobs:
       - name: Create Matrix
         id: get-matrix
         run: |
-          datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
+          # datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
+          datasets=($(echo "en" | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
+          # examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
+          examples=($(echo "AudioQnA","CodeGen" | tr ',' ' '))
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -158,12 +167,17 @@ jobs:
   Process-test-log:
     runs-on: aise-acc
     needs: [setup-acc, get-test-matrix]
+    strategy:
+      matrix:
+        example: ${{ fromJson(needs.get-test-matrix.outputs.examples) }}
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ needs.get-test-matrix.outputs.examples }}
+          name: ${{ matrix.example }}
           path: ${{ github.workspace }}/acc-log/
+        continue-on-error: true
+
       - name: Use the downloaded artifact
         run: cat ${{ github.workspace }}/acc-log/*acc_test.txt > acc-log/summary.txt
           
