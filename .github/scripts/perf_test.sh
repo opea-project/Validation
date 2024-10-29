@@ -89,7 +89,7 @@ function installChatQnA() {
     fi
     kubectl apply -f $mpath/.
     wait_until_all_pod_ready $namespace 300s
-    sleep 120s
+    sleep 750s
 
     #Clean database
     db_host=$(kubectl -n $namespace get svc vector-db -o jsonpath='{.spec.clusterIP}')
