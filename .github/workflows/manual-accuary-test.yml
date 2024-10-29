@@ -1,0 +1,179 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+name: Run accuary test on a Gaudi
+
+on:
+  workflow_dispatch:
+    inputs:
+      examples:
+        default: "ChatQnA"
+        description: 'List of examples to test [AudioQnA,ChatQnA,CodeGen,FaqGen]'
+        required: true
+        type: string
+      datasets:
+        default: "en"
+        description: "List of services to test [en, zh]"
+        required: true
+        type: string
+
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, ready_for_review, synchronize]
+
+# If there is a new commit, the previous jobs will be canceled
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  get-test-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      datasets: ${{ steps.get-matrix.outputs.datasets }}
+      examples: ${{ steps.get-matrix.outputs.examples }}
+    steps:
+      - name: Create Matrix
+        id: get-matrix
+        run: |
+          datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
+          datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
+          echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
+          examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
+          examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
+          echo "examples=$examples_json" >> $GITHUB_OUTPUT
+
+  setup-acc:
+    runs-on: aise-acc
+    needs: [get-test-matrix]
+    strategy:
+      matrix:
+        dataset: ${{ fromJson(needs.get-test-matrix.outputs.datasets) }}
+        example: ${{ fromJson(needs.get-test-matrix.outputs.examples) }}
+        exclude:
+          - example: [AudioQnA, CodeGen, FaqGen]
+            dataset: zh
+      fail-fast: false
+    steps:
+      - name: Clean up Working Directory
+        run: |
+          sudo rm -rf ${{github.workspace}}/* || true
+          docker system prune -f
+          docker rmi $(docker images --filter reference="100.83.111.229:5000/opea/*:latest" -q) || true
+
+      - name: Checkout out Validation
+        uses: actions/checkout@v4
+        with:
+          path: Validation
+
+      - name: Checkout out GenAIEval
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIEval
+          path: GenAIEval
+
+      - name: Checkout out GenAIExamples
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIExamples
+          path: GenAIExamples
+
+      - name: Set up environment
+        env:
+          example: ${{ matrix.example }}
+        run: |
+          set -x
+          conda_env_name="OPEA_acc"
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          if conda info --envs | grep -q "$conda_env_name"; then
+            echo "$conda_env_name exist! Recreating..."
+            conda env remove --name "$conda_env_name"
+            conda create -n ${conda_env_name} python=3.12 -y
+            echo "Created!"
+          else
+            conda create -n ${conda_env_name} python=3.12 -y
+          fi
+          source activate ${conda_env_name}
+          echo "Dataset: ${{ matrix.dataset }}"
+          echo "Example: ${{ matrix.example }}"
+          cd ${{ github.workspace }}/GenAIEval
+          pip install -r requirements.txt
+          if [[ "${example}" == "AudioQnA" ]]; then
+            cd ${{ github.workspace }}/GenAIExamples/AudioQnA/benchmark/accuracy
+            pip install -r requirements.txt
+          elif [[ "${example}" == "CodeGen" ]]; then
+            pip install -e .
+          fi
+
+      - name: Launch Service
+        env:
+          HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          example: ${{ matrix.example }}
+          dataset: ${{ matrix.dataset }}
+          IMAGE_REPO: 100.83.111.229:5000/opea
+        run: |
+          [ ! -d "acc-log" ] && mkdir acc-log
+          cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
+
+      - name: Evaluation Prepare
+        shell: bash
+        if: ${{ matrix.dataset }} == 'en' && ${{ matrix.dataset }} == 'ChatQnA'
+        env:
+          HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          example: ${{ matrix.example }}
+          dataset: ${{ matrix.dataset }}
+        run: |
+          [ ! -d "acc-log" ] && mkdir acc-log
+          cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
+
+      - name: Run Evaluation
+        env:
+          HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          example: ${{ matrix.example }}
+          dataset: ${{ matrix.dataset }}
+          port: 9001
+        run: |
+          set -x
+          [ ! -d "acc-log" ] && mkdir acc-log
+          cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_acc "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
+
+      - name: Clean up container
+        if: always()
+        env: 
+          example: ${{ matrix.example }}
+        run: |
+          docker system prune -f
+          cd ${{ github.workspace }}/GenAIExamples/${example}/docker_compose/intel/hpu/gaudi
+          docker compose stop && docker compose rm -f
+          docker rmi $(docker images --filter reference="100.83.111.229:5000/opea/*:latest" -q) || true
+
+      - name: Publish pipeline artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.example }}
+          path: ${{ github.workspace }}/acc-log/*.txt
+
+  Process-test-log:
+    runs-on: aise-acc
+    needs: [setup-acc, get-test-matrix]
+    steps:
+      -name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.get-test-matrix.outputs.examples }}
+          path: ${{ github.workspace }}/acc-log/
+      - name: Use the downloaded artifact
+        run: cat ${{ github.workspace }}/acc-log/*.txt > acc-log/summary.txt
+          
+      - name: Publish pipeline artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ github.workspace }}/acc-log/summary.txt
