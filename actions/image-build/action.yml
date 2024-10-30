@@ -35,7 +35,7 @@ runs:
     - name: Build Containers
       shell: bash
       run: |
-        cd $(echo "${{ inputs.work_dir }}" | cut -d'/' -f1-6)
+        cd $(echo "${{ inputs.work_dir }}" | cut -d'/' -f1-7)
         COMMIT_SHA=$(git rev-parse --short HEAD)
         COMMIT_MESSAGE=$(git log -1 --pretty=%B)
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
