@@ -28,6 +28,11 @@ inputs:
     required: false
     default: "latest"
     type: string
+  mode:
+    default: "CI"
+    description: "Whether the test range is CI or CD"
+    required: false
+    type: string
 
 runs:
   using: "composite"
@@ -35,34 +40,72 @@ runs:
     - name: Build Containers
       shell: bash
       run: |
+        set -x
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         echo $service_list
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
-        sed -i -e '/^\s*build:/ {:start; n; /^\s*args:/ {/COMMIT_SHA/! {s/\(^\s*args:\)/\1\n        COMMIT_SHA: ${COMMIT_SHA}\n        COMMIT_MESSAGE: ${COMMIT_MESSAGE}/}; b}; /^\s*dockerfile:/ {/args:/! {s/\(^\s*dockerfile:.*\)/\1\n      args:\n        COMMIT_SHA: ${COMMIT_SHA}\n        COMMIT_MESSAGE: ${COMMIT_MESSAGE}/}}; /^\s*image:/ b; b start}' ${{ inputs.work_dir }}/docker-compose.yaml
-        paths=($(awk '/context:/ { context = $2 } /dockerfile:/ { dockerfile = $2; combined = context "/" dockerfile; gsub(/\/+/, "/", combined); print combined }' "${{ inputs.work_dir }}/docker-compose.yaml"))
-        for path in "${paths[@]}"; do
-          sed -i '/FROM /a\'"\nARG COMMIT_SHA\nARG COMMIT_MESSAGE\nLABEL commit.sha=\$COMMIT_SHA\nLABEL commit.message=\$COMMIT_MESSAGE" ${{ inputs.work_dir }}/$path
-        done
-        for service in "${service_list[@]}"; do
-          commit_path=$(awk -v service="$service" '$1 == "services:" { in_service = 0; } $1 == service ":" { in_service = 1; next; } in_service && $1 == "context:" { print $2; exit; }' ${{ inputs.work_dir }}/docker-compose.yaml)
-          cd $commit_path
+        # if [[ "CD"=="${{ inputs.mode }}" ]]; then
+        blocks=()
+        while IFS= read -r line; do
+          if [[ $line =~ build ]]; then
+            block="$line"
+            while IFS= read -r next_line; do
+              if [[ $next_line =~ ^\ {6,} ]]; then
+                block="$block"$'\n'"$next_line"
+              else
+                blocks+=("$block")
+                block=""
+                break
+              fi
+            done
+          fi
+        done < docker-compose.yaml
+        for build_block in "${blocks[@]}"; do
+          config_path=$(echo "$build_block" | awk '/context:/ { context = $2 } /dockerfile:/ { dockerfile = $2; combined = context "/" dockerfile; gsub(/\/+/, "/", combined); print combined }')
+          sed -i '/FROM /a\'"\nARG COMMIT_SHA\nARG COMMIT_MESSAGE\nLABEL commit.sha=\$COMMIT_SHA\nLABEL commit.message=\$COMMIT_MESSAGE" ${{ inputs.work_dir }}/$config_path
+
+          commit_path=$(echo "$build_block" | awk '$1 == "context:" {print$2}')
+          cd ${{ inputs.work_dir }}/$commit_path
           COMMIT_SHA=$(git rev-parse --short HEAD)
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          cd ${{ inputs.work_dir }}
-          REGISTRY=${{ inputs.registry }} \
-          TAG=${{ inputs.tag }} \
-          COMMIT_SHA=$COMMIT_SHA \
-          COMMIT_MESSAGE="$COMMIT_MESSAGE" \
-          docker compose build ${service_list} --no-cache
+          new_content=$(printf "        COMMIT_SHA: %s\n        COMMIT_MESSAGE: |\n%s" "$COMMIT_SHA" "$(echo "$COMMIT_MESSAGE" | sed 's/^/          /')")
+          echo "$build_block"
+          if [[ "$build_block" == *"args:"* ]]; then
+            IFS=$'\n' read -r -d '' -a lines <<< "$build_block"
+            args_line_index=0
+            for i in "${!lines[@]}"; do
+              if [[ "${lines[$i]}" == *"args:"* ]]; then
+                args_line_index=$((i+1))
+                break
+              fi
+            done
+            first_part=("${lines[@]:0:args_line_index}")
+            second_part=("${lines[@]:args_line_index}")
+            insert_build=$(printf "%s\n" "${first_part[@]}" "$new_content" "${second_part[@]}")
+          else
+            IFS=$'\n' read -r -d '' -a lines <<< "$build_block"
+            args_line_index=0
+            for i in "${!lines[@]}"; do
+              if [[ "${lines[$i]}" == *"dockerfile:"* ]]; then
+                args_line_index=$((i+1))
+                break
+              fi
+            done
+            first_part=("${lines[@]:0:args_line_index}")
+            second_part=("${lines[@]:args_line_index}")
+            insert_build=$(printf "%s\n" "${first_part[@]}" "      args:" "$new_content" "${second_part[@]}")
+          fi
+
+          escaped_build_block=$(printf '%s\n' "$build_block" | sed 's/[\/&]/\\&/g; $!s/$/\\/')
+          escaped_insert_build=$(printf '%s\n' "$insert_build" | sed 's/[\/&]/\\&/g; $!s/$/\\/')
+          sed -i ":a;N;\$!ba;s/$escaped_build_block/$escaped_insert_build/" ${{ inputs.work_dir }}/docker-compose.yaml
         done
+        # fi
+        cd ${{ inputs.work_dir }}
+        REGISTRY=${{ inputs.registry }} \
+        TAG=${{ inputs.tag }} \
+        docker compose build $service --no-cache
         docker images
-        # cd ${{ inputs.work_dir }}
-        # REGISTRY=${{ inputs.registry }} \
-        # TAG=${{ inputs.tag }} \
-        # COMMIT_SHA=$COMMIT_SHA \
-        # COMMIT_MESSAGE="$COMMIT_MESSAGE" \
-        # docker compose build ${service_list} --no-cache
-        # docker images
       working-directory: ${{ inputs.work_dir }}
     - name: Push Containers
       shell: bash
