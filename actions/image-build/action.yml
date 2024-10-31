@@ -35,9 +35,6 @@ runs:
     - name: Build Containers
       shell: bash
       run: |
-        cd $(echo "${{ inputs.work_dir }}" | cut -d'/' -f1-7)
-        COMMIT_SHA=$(git rev-parse --short HEAD)
-        COMMIT_MESSAGE=$(git log -1 --pretty=%B)
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         echo $service_list
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
@@ -46,13 +43,26 @@ runs:
         for path in "${paths[@]}"; do
           sed -i '/FROM /a\'"\nARG COMMIT_SHA\nARG COMMIT_MESSAGE\nLABEL commit.sha=\$COMMIT_SHA\nLABEL commit.message=\$COMMIT_MESSAGE" ${{ inputs.work_dir }}/$path
         done
-        cd ${{ inputs.work_dir }}
-        REGISTRY=${{ inputs.registry }} \
-        TAG=${{ inputs.tag }} \
-        COMMIT_SHA=$COMMIT_SHA \
-        COMMIT_MESSAGE="$COMMIT_MESSAGE" \
-        docker compose build ${service_list} --no-cache
+        for service in "${service_list[@]}"; do
+          commit_path=$(awk -v service="$service" '$1 == "services:" { in_service = 0; } $1 == service ":" { in_service = 1; next; } in_service && $1 == "context:" { print $2; exit; }' ${{ inputs.work_dir }}/docker-compose.yaml)
+          cd $commit_path
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          cd ${{ inputs.work_dir }}
+          REGISTRY=${{ inputs.registry }} \
+          TAG=${{ inputs.tag }} \
+          COMMIT_SHA=$COMMIT_SHA \
+          COMMIT_MESSAGE="$COMMIT_MESSAGE" \
+          docker compose build ${service_list} --no-cache
+        done
         docker images
+        # cd ${{ inputs.work_dir }}
+        # REGISTRY=${{ inputs.registry }} \
+        # TAG=${{ inputs.tag }} \
+        # COMMIT_SHA=$COMMIT_SHA \
+        # COMMIT_MESSAGE="$COMMIT_MESSAGE" \
+        # docker compose build ${service_list} --no-cache
+        # docker images
       working-directory: ${{ inputs.work_dir }}
     - name: Push Containers
       shell: bash
