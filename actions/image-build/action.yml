@@ -71,7 +71,8 @@ runs:
           new_content=$(printf "        COMMIT_SHA: %s\n        COMMIT_MESSAGE: |\n%s" "$COMMIT_SHA" "$(echo "$COMMIT_MESSAGE" | sed 's/^/          /')")
           echo "$build_block"
           if [[ "$build_block" == *"args:"* ]]; then
-            IFS=$'\n' read -r -d '' -a lines <<< "$build_block"
+            # IFS=$'\n' read -r -d '' -a lines <<< "$build_block"
+            mapfile -t lines <<< "$build_block"
             args_line_index=0
             for i in "${!lines[@]}"; do
               if [[ "${lines[$i]}" == *"args:"* ]]; then
@@ -83,7 +84,8 @@ runs:
             second_part=("${lines[@]:args_line_index}")
             insert_build=$(printf "%s\n" "${first_part[@]}" "$new_content" "${second_part[@]}")
           else
-            IFS=$'\n' read -r -d '' -a lines <<< "$build_block"
+            # IFS=$'\n' read -r -d '' -a lines <<< "$build_block"
+            mapfile -t lines <<< "$build_block"
             args_line_index=0
             for i in "${!lines[@]}"; do
               if [[ "${lines[$i]}" == *"dockerfile:"* ]]; then
