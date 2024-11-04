@@ -28,8 +28,8 @@ inputs:
     required: false
     default: "latest"
     type: string
-  mode:
-    default: "CI"
+  inject_commit:
+    default: false
     description: "Whether the test range is CI or CD"
     required: false
     type: string
@@ -48,10 +48,13 @@ runs:
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         echo $service_list
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
-        if [[ "CD"=="${{ inputs.mode }}" ]]; then
+        if [[ "true"=="${{ inputs.inject_commit }}" ]]; then
+          echo "************Start inject commit id and message************"
           cp ${{ github.workspace }}/Validation/.github/scripts/inject_commit.sh ${{ inputs.work_dir }}/
           WORKPATH=${{ inputs.work_dir }}
           bash inject_commit.sh
+          cat ${{ inputs.work_dir }}/docker-compose.yaml
+          echo "************Inject commit id and message end************"
         fi
         cd ${{ inputs.work_dir }}
         REGISTRY=${{ inputs.registry }} \

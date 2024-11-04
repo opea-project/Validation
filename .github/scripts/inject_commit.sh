@@ -26,7 +26,6 @@ for build_block in "${blocks[@]}"; do
     COMMIT_SHA=$(git rev-parse --short HEAD)
     COMMIT_MESSAGE=$(git log -1 --pretty=%B)
     new_content=$(printf "        COMMIT_SHA: %s\n        COMMIT_MESSAGE: |\n%s" "$COMMIT_SHA" "$(echo "$COMMIT_MESSAGE" | sed 's/^/          /')")
-    echo "$build_block"
     if [[ "$build_block" == *"args:"* ]]; then
         mapfile -t lines <<< "$build_block"
         args_line_index=0
