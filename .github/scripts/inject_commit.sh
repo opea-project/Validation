@@ -54,5 +54,12 @@ for build_block in "${blocks[@]}"; do
 
     escaped_build_block=$(printf '%s\n' "$build_block" | sed 's/[\/&]/\\&/g; $!s/$/\\/')
     escaped_insert_build=$(printf '%s\n' "$insert_build" | sed 's/[\/&]/\\&/g; $!s/$/\\/')
-    sed -i ":a;N;\$!ba;s/$escaped_build_block/$escaped_insert_build/" $WORKPATH/docker-compose.yaml
+    perl -0777 -pe '
+    BEGIN {
+        $build_block = quotemeta shift;
+        $insert_build = shift;
+    }
+    s/($build_block)(?!\.intel_hpu)/$insert_build/g
+    ' "$build_block" "$insert_build" $WORKPATH/docker-compose.yaml > temp && mv temp $WORKPATH/docker-compose.yaml
+
 done
