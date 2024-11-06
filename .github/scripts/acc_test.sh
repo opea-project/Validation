@@ -35,7 +35,7 @@ function launch_service(){
 function eval_prepare(){
     if [[ "$1" == "ChatQnA" && "$2" == "en" ]]; then
         cd $WORKPATH/GenAIEval/
-        DPATH=$(dirname "$PWD")
+        DPATH=$PWD
         export PYTHONPATH=$PYTHONPATH:$DPATH
         export PATH=$PATH:/bin:/usr/bin
         # cd $WORKPATH/GenAIEval/evals/evaluation/rag_eval/examples

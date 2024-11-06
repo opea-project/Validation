@@ -120,6 +120,7 @@ jobs:
           dataset: ${{ matrix.dataset }}
           IMAGE_REPO: 100.83.111.229:5000/opea
         run: |
+          conda info --envs
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           export HUGGING_FACE_HUB_TOKEN=${HUGGINGFACEHUB_API_TOKEN}
@@ -134,10 +135,9 @@ jobs:
           example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
         run: |
+          conda info --envs
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          pwd
-          ls
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
 
       - name: Run Evaluation
@@ -149,12 +149,9 @@ jobs:
           port: 9001
         run: |
           set -x
+          conda info --envs
+          source activate OPEA_acc
           [ ! -d "acc-log" ] && mkdir acc-log
-          cd ${{ github.workspace }}/GenAIEval/
-          DPATH=$(dirname "$PWD")
-          export PYTHONPATH=$PYTHONPATH:$DPATH
-          export PATH=$PATH:/bin:/usr/bin
-          echo $PATH
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_acc "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
 
