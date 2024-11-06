@@ -30,9 +30,9 @@ inputs:
     type: string
   inject_commit:
     default: false
-    description: "Whether the test range is CI or CD"
+    description: "inject commit to docker images true or false"
     required: false
-    type: string
+    type: boolean
 
 runs:
   using: "composite"
@@ -48,7 +48,7 @@ runs:
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         echo $service_list
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
-        if [[ "true"=="${{ inputs.inject_commit }}" ]]; then
+        if [[ "true" == "${{ inputs.inject_commit }}" ]]; then
           echo "************Start inject commit id and message************"
           cp ${{ github.workspace }}/Validation/.github/scripts/inject_commit.sh ${{ inputs.work_dir }}/
           WORKPATH=${{ inputs.work_dir }}
