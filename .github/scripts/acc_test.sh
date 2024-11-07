@@ -69,7 +69,7 @@ function eval_prepare(){
 
 function launch_acc(){
     cd $WORKPATH/GenAIEval/
-    DPATH=$(dirname "$PWD")
+    DPATH=$PWD
     export PYTHONPATH=$PYTHONPATH:$DPATH
     export PATH=$PATH:/bin:/usr/bin
     echo $PATH
