@@ -98,7 +98,8 @@ jobs:
           else
             conda create -n ${conda_env_name} python=3.12 -y
           fi
-          source activate ${conda_env_name}
+          source ${HOME}/miniforge3/etc/profile.d/conda.sh
+          conda activate ${conda_env_name}
           echo "Dataset: ${{ matrix.dataset }}"
           echo "Example: ${{ matrix.example }}"
           cd ${{ github.workspace }}/GenAIEval
@@ -150,7 +151,7 @@ jobs:
         run: |
           set -x
           conda info --envs
-          source activate OPEA_acc
+          conda activate OPEA_acc
           DPATH=${{ github.workspace }}/GenAIEval/
           export PYTHONPATH=$PYTHONPATH:$DPATH
           export PATH=$PATH:/bin:/usr/bin
