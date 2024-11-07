@@ -118,7 +118,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
-          # IMAGE_REPO: 100.83.111.229:5000/opea
+          IMAGE_REPO: 100.83.111.229:5000/opea
         run: |
           conda info --envs
           [ ! -d "acc-log" ] && mkdir acc-log
@@ -154,7 +154,6 @@ jobs:
           DPATH=${{ github.workspace }}/GenAIEval/
           export PYTHONPATH=$PYTHONPATH:$DPATH
           export PATH=$PATH:/bin:/usr/bin
-          echo $PYTHONPATH
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_acc "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
@@ -184,11 +183,11 @@ jobs:
         example: ${{ fromJson(needs.get-test-matrix.outputs.examples) }}
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.example }}
           path: ${{ github.workspace }}/acc-log/
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Use the downloaded artifact
         run: cat ${{ github.workspace }}/acc-log/*acc_test.txt > acc-log/summary.txt

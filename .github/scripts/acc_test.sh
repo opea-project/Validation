@@ -73,7 +73,6 @@ function launch_acc(){
     DPATH=$PWD
     export PYTHONPATH=$PYTHONPATH:$DPATH
     export PATH=$PATH:/bin:/usr/bin
-    echo $PATH
     cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy/
 	if [[ "$1" == "CodeGen" ]]; then
         export CODEGEN_ENDPOINT="http://${ip_address}:7778/v1/codegen"
