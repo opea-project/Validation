@@ -73,12 +73,13 @@ function launch_acc(){
     DPATH=$PWD
     export PYTHONPATH=$PYTHONPATH:$DPATH
     export PATH=$PATH:/bin:/usr/bin
+    echo $1 $2
     cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy/
 	if [[ "$1" == "CodeGen" ]]; then
         export CODEGEN_ENDPOINT="http://${ip_address}:7778/v1/codegen"
         export CODEGEN_MODEL="Qwen/CodeQwen1.5-7B-Chat"
         bash run_acc.sh $CODEGEN_MODEL $CODEGEN_ENDPOINT
-    elif [[ "$3" == "ChatQnA" ]]; then
+    elif [[ "$1" == "ChatQnA" ]]; then
         sed -i 's|--docs_path MultiHop-RAG/dataset/corpus.json|--docs_path /data2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/corpus.json|g' run_acc.sh
         sed -i 's|--dataset_path MultiHop-RAG/dataset/MultiHopRAG.json|--dataset_path /data2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/MultiHopRAG.json|g' run_acc.sh
         sed -i '/git clone https:\/\/github.com\/yixuantt\/MultiHop-RAG.git/d' run_acc.sh
@@ -89,7 +90,7 @@ function launch_acc(){
         sed -i '/python process_crud_dataset.py/d' run_acc.sh
         sed -i 's|--dataset_path ./data/split_merged.json|--dataset_path /data2/opea-dataset/ChatQnA/data/split_merged.json|' run_acc.sh
         sed -i 's|--docs_path ./data/80000_docs|--docs_path /data2/opea-dataset/ChatQnA/data/80000_docs/|' run_acc.sh
-        if [[ "$3" == "en" ]]; then
+        if [[ "$2" == "en" ]]; then
             bash run_acc.sh --dataset=MultiHop
         else
             bash run_acc.sh --dataset=crud
