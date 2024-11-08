@@ -44,8 +44,8 @@ function eval_prepare(){
     elif [[ "$1" == "FaqGen" ]]; then
         export FAQ_ENDPOINT="http://${ip_address}:9000/v1/faqgen"
         cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy
-        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
-        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
+        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
+        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
         sed -i 's/1204/120/g' generate_FAQ.py
         sed -i 's/1204/120/g' post_process_FAQ.py
         sed -i 's/1204/120/g' evaluate.py
@@ -80,16 +80,16 @@ function launch_acc(){
         export CODEGEN_MODEL="Qwen/CodeQwen1.5-7B-Chat"
         bash run_acc.sh $CODEGEN_MODEL $CODEGEN_ENDPOINT
     elif [[ "$1" == "ChatQnA" ]]; then
-        sed -i 's|--docs_path MultiHop-RAG/dataset/corpus.json|--docs_path /data2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/corpus.json|g' run_acc.sh
-        sed -i 's|--dataset_path MultiHop-RAG/dataset/MultiHopRAG.json|--dataset_path /data2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/MultiHopRAG.json|g' run_acc.sh
+        sed -i 's|--docs_path MultiHop-RAG/dataset/corpus.json|--docs_path /scratch-2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/corpus.json|g' run_acc.sh
+        sed -i 's|--dataset_path MultiHop-RAG/dataset/MultiHopRAG.json|--dataset_path /scratch-2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/MultiHopRAG.json|g' run_acc.sh
         sed -i '/git clone https:\/\/github.com\/yixuantt\/MultiHop-RAG.git/d' run_acc.sh
         sed -i '/git clone https:\/\/github.com\/IAAR-Shanghai\/CRUD_RAG/d' run_acc.sh
         sed -i '/mkdir data\//d' run_acc.sh
         sed -i '/cp CRUD_RAG\/data\/crud_split\/split_merged.json data\//d' run_acc.sh
         sed -i '/cp -r CRUD_RAG\/data\/80000_docs\/ data\//d' run_acc.sh
         sed -i '/python process_crud_dataset.py/d' run_acc.sh
-        sed -i 's|--dataset_path ./data/split_merged.json|--dataset_path /data2/opea-dataset/ChatQnA/data/split_merged.json|' run_acc.sh
-        sed -i 's|--docs_path ./data/80000_docs|--docs_path /data2/opea-dataset/ChatQnA/data/80000_docs/|' run_acc.sh
+        sed -i 's|--dataset_path ./data/split_merged.json|--dataset_path /scratch-2/opea-dataset/ChatQnA/data/split_merged.json|' run_acc.sh
+        sed -i 's|--docs_path ./data/80000_docs|--docs_path /scratch-2/opea-dataset/ChatQnA/data/80000_docs/|' run_acc.sh
         if [[ "$2" == "en" ]]; then
             bash run_acc.sh --dataset=MultiHop
         else

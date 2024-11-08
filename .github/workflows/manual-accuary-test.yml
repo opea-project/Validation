@@ -151,6 +151,7 @@ jobs:
         run: |
           set -x
           conda info --envs
+          source ${HOME}/miniforge3/etc/profile.d/conda.sh
           conda activate OPEA_acc
           DPATH=${{ github.workspace }}/GenAIEval/
           export PYTHONPATH=$PYTHONPATH:$DPATH
