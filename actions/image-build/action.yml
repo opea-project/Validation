@@ -50,9 +50,9 @@ runs:
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
         if [[ "true" == "${{ inputs.inject_commit }}" ]]; then
           echo "************Start inject commit id and message************"
-          cp ${{ github.workspace }}/Validation/.github/scripts/inject_commit.sh ${{ inputs.work_dir }}/
+          cp ${{ github.workspace }}/Validation/.github/scripts/inject_commit.py ${{ inputs.work_dir }}/
           WORKPATH=${{ inputs.work_dir }}
-          bash inject_commit.sh
+          python inject_commit.py
           cat ${{ inputs.work_dir }}/docker-compose.yaml
           echo "************Inject commit id and message end************"
         fi
