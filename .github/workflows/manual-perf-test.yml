@@ -6,14 +6,19 @@ name: Run performance test on a Kubernetes cluster
 on:
   workflow_dispatch:
     inputs:
+      runner:
+        default: "aise-perf"
+        description: "Runner label"
+        required: true
+        type: string
+      cleanup:
+        default: true
+        description: "Whether to clean up the pods and the labels"
+        required: true
+        type: boolean
       node_nums:
         default: "1"
         description: "List of test node numbers, e.g., 1,2,4,8"
-        required: true
-        type: string
-      mode:
-        default: "with_rerank:oob"
-        description: "The mode of the test, e.g., with_rerank:tuned"
         required: true
         type: string
       registry:
@@ -27,13 +32,18 @@ on:
         required: true
         type: string
       opea_branch:
-        default: "helmcharts_switch"
+        default: "main"
         description: "GenAIExamples branch to test manifests"
         required: true
         type: string
       eval_branch:
         default: "main"
         description: "GenAIEval branch to test manifests"
+        required: true
+        type: string
+      mode:
+        default: "with_rerank:oob"
+        description: "The mode of the test, e.g., with_rerank:tuned"
         required: true
         type: string
       test_cases:
@@ -50,16 +60,6 @@ on:
         default: "constant:5"
         description: "configuration for load test in format load_type:value, constant:5 or poisson:1.0"
         required: false
-        type: string
-      cleanup:
-        default: true
-        description: "Whether to clean up the pods and the labels"
-        required: true
-        type: boolean
-      runner:
-        default: "aise-perf"
-        description: "Runner label"
-        required: true
         type: string
 
 jobs:
@@ -105,6 +105,13 @@ jobs:
           ref: ${{ inputs.eval_branch }}
           path: GenAIEval
 
+      - name: Checkout out GenAIInfra
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIInfra
+          ref: main
+          path: GenAIInfra
+
       - name: Set up stress tool
         run: |
           if ! command -v yq &> /dev/null; then
@@ -132,6 +139,14 @@ jobs:
               echo "Unknown LOAD_SHAPE: $LOAD_SHAPE"
           fi
 
+      - name: K8s Label Nodes
+        working-directory: ./Validation
+        env:
+          NODE_NUM: ${{ matrix.node_num }}
+        run: |
+          echo "uncordon=true" >> $GITHUB_ENV
+          .github/scripts/perf_test.sh --label
+
       - name: Prepare benchmark configuration
         id: prepare_benchmark
         working-directory: ./Validation
@@ -147,12 +162,6 @@ jobs:
           echo "randomstr=$(echo $RANDOM)" >> $GITHUB_OUTPUT
           echo "TEST_OUTPUT_DIR=$TEST_OUTPUT_DIR" >> $GITHUB_ENV
 
-      - name: K8s Label Nodes
-        working-directory: ./Validation
-        run: |
-          echo "uncordon=true" >> $GITHUB_ENV
-          .github/scripts/perf_test.sh --label ${{ matrix.node_num }}
-
       - name: Install Workload
         working-directory: ./Validation
         env:
@@ -160,9 +169,10 @@ jobs:
           IMAGE_TAG: ${{ inputs.tag }}
           HF_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
           MODE: ${{ inputs.mode }}
+          NODE_NUM: ${{ matrix.node_num }}
         run: |
           echo "uninstall=true" >> $GITHUB_ENV
-          .github/scripts/perf_test.sh --installChatQnA ${{ matrix.node_num }} ../GenAIExamples
+          .github/scripts/perf_test.sh --installChatQnA
 
       - name: Stress Test
         working-directory: ./GenAIEval
@@ -203,9 +213,10 @@ jobs:
         working-directory: ./Validation
         env:
           MODE: ${{ inputs.mode }}
+          NODE_NUM: ${{ matrix.node_num }}
         run: |
           if [[ "$uninstall" == true && "${{ inputs.cleanup }}" == true ]]; then
-            .github/scripts/perf_test.sh --uninstallChatQnA ${{ matrix.node_num }} ../GenAIExamples
+            .github/scripts/perf_test.sh --uninstallChatQnA
             sleep 120s
           fi
 

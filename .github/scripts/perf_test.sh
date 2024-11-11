@@ -4,17 +4,17 @@ set -xe
 nodelabel="node-type=opea"
 nodeunlabel="node-type-"
 namespace="default"
-modelpath="/mnt/models"
 mode=${MODE:-"with_rerank:tuned"}
 example=${EXAMPLE:-"chatqna"}
+node_num=${NODE_NUM:-1}
 export LOAD_SHAPE=${LOAD_SHAPE:-"constant"}
 export CONCURRENT_LEVEL=${CONCURRENT_LEVEL:-5}
 export ARRIVAL_RATE=${ARRIVAL_RATE:-1.0}
+export MODEL_DIR=${MODEL_DIR:-"/data2/opea-models"}
 
 function label() {
     echo "Label the node."
 
-    label_nums=$1
     cluster_node_names=$(kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers)
     node_count=$(kubectl get nodes --no-headers | wc -l)
 
@@ -26,12 +26,12 @@ function label() {
 
     label_count=0
     for node_name in $cluster_node_names; do
-        if [ "$node_name" == "$cluster_control_plane_name" ] && [ "$label_nums" -lt "$node_count" ]; then
+        if [ "$node_name" == "$cluster_control_plane_name" ] && [ "$node_num" -lt "$node_count" ]; then
             continue
         fi
         kubectl label nodes $node_name $nodelabel --overwrite
         label_count=$((label_count+1))
-        if [ "$label_count" -ge "$label_nums" ]; then
+        if [ "$label_count" -ge "$node_num" ]; then
             break
         fi
     done
@@ -48,32 +48,41 @@ function unlabel() {
 
 function installChatQnA() {
     echo "Install ChatQnA."
-    num_gaudi=$1
 
-    mpath="ChatQnA/benchmark/performance/helm_charts"
-    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/\(.*\):latest#image: opea/\1:${IMAGE_TAG}#g" {} \;
-    if [[ -n $IMAGE_REPO ]]; then
-        find $mpath/ -name '*.yaml' -type f -exec sed -i "s#image: opea/*#image: ${IMAGE_REPO}/opea/#g" {} \;
+    echo "Generate helm charts value for test."
+    script_path="../GenAIExamples/ChatQnA/benchmark/performance/kubernetes/intel/gaudi"
+    pushd $script_path
+    cmd="python deploy.py --hftoken $HF_TOKEN --modeldir $MODEL_DIR --num-nodes $node_num --create-values-only"
+    if [[ $mode == *"with_rerank"* ]]; then
+        cmd="$cmd --without-rerank"
     fi
-    find $mpath/ -name '*.yaml' -type f -exec sed -i "s#\${HF_TOKEN}#${HF_TOKEN}#g" {} \;
-    #find $mpath/ -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
-    #find $mpath/ -name '*.yaml' -type f -exec sed -i "s#namespace: default#namespace: ${namespace}#g" {} \;
-
-    if kubectl get namespace "$namespace" > /dev/null 2>&1; then
-        echo "Namespace '$namespace' already exists."
-    else
-        kubectl create ns $namespace
+    if [[ $mode == *"tuned"* ]]; then
+        cmd="$cmd --tuned"
     fi
-
-    workflow=$(echo "${mode}" | cut -d':' -f1 | xargs)
-    test_mode=$(echo "${mode}" | cut -d':' -f2 | xargs)
-    pushd $mpath
-    python deployment.py --workflow=${workflow} --mode=${test_mode} --num_nodes=${num_gaudi}
-    wait_until_all_pod_ready $namespace 300s
-    sleep 120s
+    eval $cmd
+    values_file=$(ls -t *-values.yaml | head -n 1)
     popd
 
-    #Clean database
+    echo "Setting for development test."
+    mkdir -p customer_values
+    helm_charts_path="../GenAIInfra/helm-charts/chatqna"
+    hw_values_file="gaudi-values.yaml"
+    cp $helm_charts_path/values.yaml $customer_values/
+    cp $helm_charts_path/$hw_values_file $customer_values/
+    cp $script_path/$values_file $customer_values/
+    if [[ -n $IMAGE_REPO ]]; then
+        find $customer_values/ -name '*.yaml' -type f -exec sed -i "s#repository: opea/*#repository: ${IMAGE_REPO}/opea/#g" {} \;
+    fi
+    find $customer_values/ -name '*.yaml' -type f -exec sed -i "s#tag: latest#tag: ${IMAGE_TAG}#g" {} \;
+    #find $customer_value/ -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
+    #find $customer_value/ -name '*.yaml' -type f -exec sed -i "s#namespace: default#namespace: ${namespace}#g" {} \;
+
+    echo "Deploy ChatQnA."
+    helm install chatqna $helm_charts_path/ -f $customer_values/values.yaml -f $customer_values/$hw_values_file -f $customer_values/$values_file
+    wait_until_all_pod_ready $namespace 300s
+    sleep 120s
+
+    echo "Setup benchmark database."
     db_host=$(kubectl -n $namespace get svc vector-db -o jsonpath='{.spec.clusterIP}')
     pip install redisvl
     rvl index info --host ${db_host} -i rag-redis
@@ -91,7 +100,6 @@ function installChatQnA() {
            -F "files=@./upload_file.txt" \
            -F "chunk_size=3800"
     fi
-
 }
 
 function uninstallChatQnA() {
@@ -100,15 +108,14 @@ function uninstallChatQnA() {
 }
 
 function generate_config(){
-    echo "Generate benchmark config"
-    num_gaudi=$1
-    # under Validate folder
-    input_path=".github/scripts/benchmark.yaml"
+    echo "Generate benchmark config."
+    # under Example folder
+    input_path="ChatQnA/benchmark/performance/kubernetes/intel/gaudi/benchmark.yaml"
     output_path="../GenAIEval/evals/benchmark/benchmark.yaml"
 
     single_node_user_queries=640
     test_loop=8
-    user_queries=$((single_node_user_queries * num_gaudi))
+    user_queries=$((single_node_user_queries * node_num))
     DEFAULT_USER_QUERIES=$user_queries
     for ((i=1; i<test_loop; i++)); do
         DEFAULT_USER_QUERIES="$DEFAULT_USER_QUERIES, $user_queries"
@@ -223,23 +230,21 @@ case "$1" in
         uncordon
         ;;
     --label)
-        label $2
+        label
         ;;
     --unlabel)
         unlabel
         ;;
     --installChatQnA)
-        pushd $3
-        installChatQnA $2
-        popd
+        installChatQnA
         ;;
     --uninstallChatQnA)
-        pushd $3
-        uninstallChatQnA $2
-        popd
+        uninstallChatQnA
         ;;
     --generate_config)
-        generate_config $2
+        pushd ../GenAIExamples
+        generate_config
+        popd
         ;;
     --process_result_data)
         process_result_data
