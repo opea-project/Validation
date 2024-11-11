@@ -59,7 +59,7 @@ for build_block in "${blocks[@]}"; do
         $build_block = quotemeta shift;
         $insert_build = shift;
     }
-    s/($build_block)(?!\.intel_hpu)/$insert_build/g
+    s/($build_block)(?!\.intel_hpu)(?!\.guardrails)(?!\.without_rerank)(?!\.react)(?!\.cpu)(?!\.hpu)(?!\.server)(?!\.ui)/$insert_build/g
     ' "$build_block" "$insert_build" $WORKPATH/docker-compose.yaml > temp && mv temp $WORKPATH/docker-compose.yaml
 
 done
