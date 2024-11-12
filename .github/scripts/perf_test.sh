@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -x
-nodelabel="node-type=opea"
+nodelabel="node-type=opea-benchmark"
 nodeunlabel="node-type-"
 namespace="default"
 mode=${MODE:-"with_rerank:tuned"}
