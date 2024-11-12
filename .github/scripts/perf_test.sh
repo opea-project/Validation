@@ -64,22 +64,22 @@ function installChatQnA() {
     popd
 
     echo "Setting for development test."
-    mkdir -p customer_values
     helm_charts_path="../GenAIInfra/helm-charts/chatqna"
     hw_values_file="gaudi-values.yaml"
-    cp $helm_charts_path/values.yaml customer_values/
-    cp $helm_charts_path/$hw_values_file customer_values/
-    cp $script_path/$values_file customer_values/
+    cp $script_path/$values_file $helm_charts_path
+    pushd $helm_charts_path
     if [[ -n $IMAGE_REPO ]]; then
-        find customer_values/ -name '*.yaml' -type f -exec sed -i "s#repository: opea/*#repository: ${IMAGE_REPO}/opea/#g" {} \;
+        find ./ -name '*value.yaml' -type f -exec sed -i "s#repository: opea/*#repository: ${IMAGE_REPO}/opea/#g" {} \;
     fi
-    find customer_values/ -name '*.yaml' -type f -exec sed -i "s#tag: latest#tag: ${IMAGE_TAG}#g" {} \;
-    #find $customer_value/ -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
-    #find $customer_value/ -name '*.yaml' -type f -exec sed -i "s#namespace: default#namespace: ${namespace}#g" {} \;
+    find ./ -name '*value.yaml' -type f -exec sed -i "s#tag: latest#tag: ${IMAGE_TAG}#g" {} \;
+    #find ./ -name '*value.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
+    #find ./ -name '*value.yaml' -type f -exec sed -i "s#namespace: default#namespace: ${namespace}#g" {} \;
 
     echo "Deploy ChatQnA."
-    helm install chatqna $helm_charts_path/ -f customer_values/values.yaml -f customer_values/$hw_values_file -f customer_values/$values_file
+    helm dependency update
+    helm install chatqna chatqna -f $hw_values_file -f $values_file
     wait_until_all_pod_ready $namespace 300s
+    popd
     sleep 120s
 
     echo "Setup benchmark database."
@@ -89,7 +89,7 @@ function installChatQnA() {
     rvl index delete --host ${db_host} -i rag-redis
     #Prepare dataset
     dataprep_host=$(kubectl -n $namespace get svc dataprep-svc -o jsonpath='{.spec.clusterIP}')
-    cd ../GenAIEval/evals/benchmark/data
+    pushd ../GenAIEval/evals/benchmark/data
     if [[ $mode == *"without_rerank"* ]]; then
         curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
            -H "Content-Type: multipart/form-data" \
@@ -100,6 +100,7 @@ function installChatQnA() {
            -F "files=@./upload_file.txt" \
            -F "chunk_size=3800"
     fi
+    popd
 }
 
 function uninstallChatQnA() {
