@@ -98,8 +98,14 @@ jobs:
           else
             conda create -n ${conda_env_name} python=3.12 -y
           fi
-          source ${HOME}/miniforge3/etc/profile.d/conda.sh
-          conda activate ${conda_env_name}
+          conda_version=$(conda --version 2>&1)
+          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
+          if [[ $major_version -ge 6 ]]; then
+            source activate ${conda_env_name}
+          else
+            source ${HOME}/miniforge3/etc/profile.d/conda.sh
+            conda activate ${conda_env_name}
+          fi
           echo "Dataset: ${{ matrix.dataset }}"
           echo "Example: ${{ matrix.example }}"
           cd ${{ github.workspace }}/GenAIEval
@@ -121,7 +127,15 @@ jobs:
           dataset: ${{ matrix.dataset }}
           IMAGE_REPO: 100.83.111.229:5000/opea
         run: |
-          conda info --envs
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          conda_version=$(conda --version 2>&1)
+          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
+          if [[ $major_version -ge 6 ]]; then
+            source activate OPEA_acc
+          else
+            source ${HOME}/miniforge3/etc/profile.d/conda.sh
+            conda activate OPEA_acc
+          fi
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           export HUGGING_FACE_HUB_TOKEN=${HUGGINGFACEHUB_API_TOKEN}
@@ -136,7 +150,15 @@ jobs:
           example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
         run: |
-          conda info --envs
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          conda_version=$(conda --version 2>&1)
+          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
+          if [[ $major_version -ge 6 ]]; then
+            source activate OPEA_acc
+          else
+            source ${HOME}/miniforge3/etc/profile.d/conda.sh
+            conda activate OPEA_acc
+          fi
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
@@ -150,9 +172,15 @@ jobs:
           port: 9001
         run: |
           set -x
-          conda info --envs
-          source ${HOME}/miniforge3/etc/profile.d/conda.sh
-          conda activate OPEA_acc
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          conda_version=$(conda --version 2>&1)
+          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
+          if [[ $major_version -ge 6 ]]; then
+            source activate OPEA_acc
+          else
+            source ${HOME}/miniforge3/etc/profile.d/conda.sh
+            conda activate OPEA_acc
+          fi
           DPATH=${{ github.workspace }}/GenAIEval/
           export PYTHONPATH=$PYTHONPATH:$DPATH
           export PATH=$PATH:/bin:/usr/bin
