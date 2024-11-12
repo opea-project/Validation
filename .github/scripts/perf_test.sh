@@ -67,18 +67,18 @@ function installChatQnA() {
     mkdir -p customer_values
     helm_charts_path="../GenAIInfra/helm-charts/chatqna"
     hw_values_file="gaudi-values.yaml"
-    cp $helm_charts_path/values.yaml $customer_values/
-    cp $helm_charts_path/$hw_values_file $customer_values/
-    cp $script_path/$values_file $customer_values/
+    cp $helm_charts_path/values.yaml customer_values/
+    cp $helm_charts_path/$hw_values_file customer_values/
+    cp $script_path/$values_file customer_values/
     if [[ -n $IMAGE_REPO ]]; then
-        find $customer_values/ -name '*.yaml' -type f -exec sed -i "s#repository: opea/*#repository: ${IMAGE_REPO}/opea/#g" {} \;
+        find customer_values/ -name '*.yaml' -type f -exec sed -i "s#repository: opea/*#repository: ${IMAGE_REPO}/opea/#g" {} \;
     fi
-    find $customer_values/ -name '*.yaml' -type f -exec sed -i "s#tag: latest#tag: ${IMAGE_TAG}#g" {} \;
+    find customer_values/ -name '*.yaml' -type f -exec sed -i "s#tag: latest#tag: ${IMAGE_TAG}#g" {} \;
     #find $customer_value/ -name '*.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
     #find $customer_value/ -name '*.yaml' -type f -exec sed -i "s#namespace: default#namespace: ${namespace}#g" {} \;
 
     echo "Deploy ChatQnA."
-    helm install chatqna $helm_charts_path/ -f $customer_values/values.yaml -f $customer_values/$hw_values_file -f $customer_values/$values_file
+    helm install chatqna $helm_charts_path/ -f customer_values/values.yaml -f customer_values/$hw_values_file -f customer_values/$values_file
     wait_until_all_pod_ready $namespace 300s
     sleep 120s
 
