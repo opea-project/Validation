@@ -64,20 +64,19 @@ function installChatQnA() {
     popd
 
     echo "Setting for development test."
-    helm_charts_path="../GenAIInfra/helm-charts/chatqna"
+    helm_charts_path="../GenAIInfra/helm-charts"
     hw_values_file="gaudi-values.yaml"
-    cp $script_path/$values_file $helm_charts_path
+    cp $script_path/$values_file $helm_charts_path/chatqna
     pushd $helm_charts_path
     if [[ -n $IMAGE_REPO ]]; then
         find ./ -name '*value.yaml' -type f -exec sed -i "s#repository: opea/*#repository: ${IMAGE_REPO}/opea/#g" {} \;
     fi
     find ./ -name '*value.yaml' -type f -exec sed -i "s#tag: latest#tag: ${IMAGE_TAG}#g" {} \;
     #find ./ -name '*value.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
-    #find ./ -name '*value.yaml' -type f -exec sed -i "s#namespace: default#namespace: ${namespace}#g" {} \;
 
     echo "Deploy ChatQnA."
-    helm dependency update
-    helm install chatqna chatqna -f $hw_values_file -f $values_file
+    helm dependency update chatqna
+    helm install chatqna chatqna -f chatqna/$hw_values_file -f chatqna/$values_file
     wait_until_all_pod_ready $namespace 300s
     popd
     sleep 120s
