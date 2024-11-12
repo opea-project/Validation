@@ -32,7 +32,7 @@ on:
         required: true
         type: string
       opea_branch:
-        default: "main"
+        default: "suyue/bench"
         description: "GenAIExamples branch to test manifests"
         required: true
         type: string

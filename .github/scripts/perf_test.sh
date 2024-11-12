@@ -52,9 +52,9 @@ function installChatQnA() {
     echo "Generate helm charts value for test."
     script_path="../GenAIExamples/ChatQnA/benchmark/performance/kubernetes/intel/gaudi"
     pushd $script_path
-    cmd="python deploy.py --hftoken $HF_TOKEN --modeldir $MODEL_DIR --num-nodes $node_num --create-values-only"
+    cmd="python deploy.py --hf-token $HF_TOKEN --model-dir $MODEL_DIR --num-nodes $node_num --create-values-only"
     if [[ $mode == *"with_rerank"* ]]; then
-        cmd="$cmd --without-rerank"
+        cmd="$cmd --with-rerank"
     fi
     if [[ $mode == *"tuned"* ]]; then
         cmd="$cmd --tuned"
