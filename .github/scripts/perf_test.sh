@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -xe
 nodelabel="node-type=opea-benchmark"
 nodeunlabel="node-type-"
 namespace="default"
