@@ -154,6 +154,7 @@ jobs:
           TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
           TEST_CASES: ${{ inputs.test_cases }}
           USER_QUERIES: ${{ inputs.user_queries }}
+          NODE_NUM: ${{ matrix.node_num }}
         run: |
           rm -rf $TEST_OUTPUT_DIR
           .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
@@ -179,6 +180,7 @@ jobs:
         env:
           TEST_OUTPUT_DIR: /home/sdp/benchmark_output/node_${{ matrix.node_num }}
           TEST_CASES: ${{ inputs.test_cases }}
+          NODE_NUM: ${{ matrix.node_num }}
         run: |
           source stress_venv/bin/activate
           cd evals/benchmark
