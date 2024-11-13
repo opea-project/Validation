@@ -121,7 +121,7 @@ function generate_config(){
     done
 
     CUSTOMIZE_QUERY_LIST=${USER_QUERIES:-$DEFAULT_USER_QUERIES}
-    export USER_QUERIES=$CUSTOMIZE_QUERY_LIST
+    export USER_QUERIES="[$CUSTOMIZE_QUERY_LIST]"
 
     export DEPLOYMENT_TYPE="k8s"
     export SERVICE_IP=None
