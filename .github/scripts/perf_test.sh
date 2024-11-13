@@ -119,7 +119,7 @@ function generate_config(){
     for ((i=1; i<test_loop; i++)); do
         DEFAULT_USER_QUERIES="$DEFAULT_USER_QUERIES, $user_queries"
     done
-
+    
     CUSTOMIZE_QUERY_LIST=${USER_QUERIES:-$DEFAULT_USER_QUERIES}
     export USER_QUERIES="[$CUSTOMIZE_QUERY_LIST]"
 

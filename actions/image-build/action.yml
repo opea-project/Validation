@@ -28,16 +28,35 @@ inputs:
     required: false
     default: "latest"
     type: string
+  inject_commit:
+    default: false
+    description: "inject commit to docker images true or false"
+    required: false
+    type: boolean
 
 runs:
   using: "composite"
   steps:
+    - name: Checkout out Validation
+      uses: actions/checkout@v4
+      with:
+        repository: opea-project/Validation
+        path: Validation
     - name: Build Containers
       shell: bash
       run: |
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         echo $service_list
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
+        if [[ "true" == "${{ inputs.inject_commit }}" ]]; then
+          echo "************Start inject commit id and message************"
+          cp ${{ github.workspace }}/Validation/.github/scripts/inject_commit.sh ${{ inputs.work_dir }}/
+          WORKPATH=${{ inputs.work_dir }}
+          bash inject_commit.sh
+          cat ${{ inputs.work_dir }}/docker-compose.yaml
+          echo "************Inject commit id and message end************"
+        fi
+        cd ${{ inputs.work_dir }}
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
         docker compose build ${service_list} --no-cache
