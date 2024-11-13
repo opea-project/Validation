@@ -139,7 +139,7 @@ jobs:
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           export HUGGING_FACE_HUB_TOKEN=${HUGGINGFACEHUB_API_TOKEN}
-          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
 
       - name: Evaluation Prepare
         shell: bash
@@ -161,7 +161,7 @@ jobs:
           fi
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
 
       - name: Run Evaluation
         env:
@@ -186,7 +186,7 @@ jobs:
           export PATH=$PATH:/bin:/usr/bin
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_acc "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_acc "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
 
       - name: Clean up container
         if: always()
@@ -220,7 +220,7 @@ jobs:
         continue-on-error: false
 
       - name: Use the downloaded artifact
-        run: cat ${{ github.workspace }}/acc-log/*acc_test.txt > acc-log/summary.txt
+        run: cat ${{ github.workspace }}/acc-log/*acc_test.txt  | tee acc-log/summary.txt
           
       - name: Publish pipeline artifact
         if: ${{ !cancelled() }}
