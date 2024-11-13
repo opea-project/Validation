@@ -158,7 +158,6 @@ jobs:
         run: |
           rm -rf $TEST_OUTPUT_DIR
           .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
-          echo "uncordon=false" >> $GITHUB_ENV
           echo "uninstall=false" >> $GITHUB_ENV
           echo "randomstr=$(echo $RANDOM)" >> $GITHUB_OUTPUT
           echo "TEST_OUTPUT_DIR=$TEST_OUTPUT_DIR" >> $GITHUB_ENV
