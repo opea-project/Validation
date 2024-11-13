@@ -82,12 +82,12 @@ function installChatQnA() {
     sleep 120s
 
     echo "Setup benchmark database."
-    db_host=$(kubectl -n $namespace get svc vector-db -o jsonpath='{.spec.clusterIP}')
+    db_host=$(kubectl -n $namespace get svc chatqna-redis-vector-db -o jsonpath='{.spec.clusterIP}')
     pip install redisvl
     rvl index info --host ${db_host} -i rag-redis
     rvl index delete --host ${db_host} -i rag-redis
     #Prepare dataset
-    dataprep_host=$(kubectl -n $namespace get svc dataprep-svc -o jsonpath='{.spec.clusterIP}')
+    dataprep_host=$(kubectl -n $namespace get svc chatqna-data-prep -o jsonpath='{.spec.clusterIP}')
     pushd ../GenAIEval/evals/benchmark/data
     if [[ $mode == *"without_rerank"* ]]; then
         curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
@@ -96,8 +96,7 @@ function installChatQnA() {
     else
         curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
            -H "Content-Type: multipart/form-data" \
-           -F "files=@./upload_file.txt" \
-           -F "chunk_size=3800"
+           -F "files=@./upload_file.txt"
     fi
     popd
 }
@@ -123,7 +122,13 @@ function generate_config(){
 
     CUSTOMIZE_QUERY_LIST=${USER_QUERIES:-$DEFAULT_USER_QUERIES}
     export USER_QUERIES=$CUSTOMIZE_QUERY_LIST
+
+    export DEPLOYMENT_TYPE="k8s"
+    export SERVICE_IP=None
+    export SERVICE_PORT=None
+
     envsubst < $input_path > $output_path
+    cat $output_path
 
     # Mark test cases
     TEST_CASES=${TEST_CASES:-"e2e"}

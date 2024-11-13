@@ -182,9 +182,6 @@ jobs:
         run: |
           source stress_venv/bin/activate
           cd evals/benchmark
-          export DEPLOYMENT_TYPE="k8s"
-          export SERVICE_IP=None
-          export SERVICE_PORT=None
           python benchmark.py
           
           ${{ github.workspace }}/Validation/.github/scripts/perf_test.sh --process_result_data
