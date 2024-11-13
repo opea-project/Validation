@@ -10,7 +10,7 @@ node_num=${NODE_NUM:-1}
 export LOAD_SHAPE=${LOAD_SHAPE:-"constant"}
 export CONCURRENT_LEVEL=${CONCURRENT_LEVEL:-5}
 export ARRIVAL_RATE=${ARRIVAL_RATE:-1.0}
-export MODEL_DIR=${MODEL_DIR:-"/data2/opea-models"}
+export MODEL_DIR=${MODEL_DIR:-"/home/sdp/.cache/huggingface/hub"}
 
 function label() {
     echo "Label the node."
