@@ -210,11 +210,11 @@ function wait_until_all_pod_ready() {
 
 function usage()
 {
-	echo "Usage: $0 --cordon --uncordon --label --unlabel --installChatQnA --uninstallChatQnA --generate_config --process_result_data"
+	echo "Usage: $0 --label --unlabel --installChatQnA --uninstallChatQnA --generate_config --process_result_data"
 }
 
 OPTIONS="-h"
-LONGOPTIONS="help,cordon,uncordon,label,unlabel,installChatQnA,uninstallChatQnA,generate_config,process_result_data"
+LONGOPTIONS="help,label,unlabel,installChatQnA,uninstallChatQnA,generate_config,process_result_data"
 
 if [ $# -lt 1 ]; then
 	usage
@@ -227,12 +227,6 @@ PARSED_OPTIONS=$(getopt -o "$OPTIONS" --long "$LONGOPTIONS" -n "$0" -- "$@")
 case "$1" in
     -h|--help)
         usage
-        ;;
-    --cordon)
-        cordon $2
-        ;;
-    --uncordon)
-        uncordon
         ;;
     --label)
         label
