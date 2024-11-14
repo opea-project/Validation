@@ -125,7 +125,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
-          IMAGE_REPO: 100.83.111.229:5000/opea
+          # IMAGE_REPO: 100.83.111.229:5000/opea
         run: |
           export PATH=${HOME}/miniforge3/bin/:$PATH
           conda_version=$(conda --version 2>&1)
