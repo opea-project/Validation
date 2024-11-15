@@ -29,7 +29,6 @@ function launch_service(){
         echo "    validate_megaservice" >> launch_"$1".sh
         echo "}" >> launch_"$1".sh
         echo "main" >> launch_"$1".sh
-        sudo systemctl daemon-reload && sudo systemctl restart docker
         bash launch_"$1".sh
     fi
 }
@@ -45,8 +44,8 @@ function eval_prepare(){
     elif [[ "$1" == "FaqGen" ]]; then
         export FAQ_ENDPOINT="http://${ip_address}:9000/v1/faqgen"
         cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy
-        # sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
-        # sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
+        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
+        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
         # # sed -i 's/1204/120/g' generate_FAQ.py
         # # sed -i 's/1204/120/g' post_process_FAQ.py
         # # sed -i 's/1204/120/g' evaluate.py
@@ -59,18 +58,19 @@ function eval_prepare(){
         bash launch_tgi.sh
         export LLM_ENDPOINT="http://${ip_address}:8082"
         n=0
-        until [[ "$n" -ge 100 ]] || [[ $ready == true ]]; do
-            docker logs tgi_Mixtral > ./tgi.log
+        until [[ "$n" -ge 100 ]]; do
+            docker logs tgi_Mixtral > tgi.log
             n=$((n+1))
-            if grep -q Connected ./tgi.log; then
+            if grep -q Connected tgi.log; then
+                curl http://${ip_address}:8082/generate \
+                    -X POST \
+                    -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128}}' \
+                    -H 'Content-Type: application/json'
                 break
             fi
             sleep 5s
         done
-        curl http://${ip_address}:8082/generate \
-          -X POST \
-          -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128}}' \
-          -H 'Content-Type: application/json'
+        docker ps
     fi
 }
 

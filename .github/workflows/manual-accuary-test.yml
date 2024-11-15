@@ -122,6 +122,7 @@ jobs:
       - name: Launch Service
         env:
           HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
@@ -138,7 +139,6 @@ jobs:
           fi
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          export HUGGING_FACE_HUB_TOKEN=${HUGGINGFACEHUB_API_TOKEN}
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
 
       - name: Evaluation Prepare
@@ -146,6 +146,7 @@ jobs:
         if: ${{ matrix.dataset }} == 'en' && ${{ matrix.dataset }} == 'ChatQnA'
         env:
           HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
