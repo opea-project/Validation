@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -xe
+set -x
 nodelabel="node-type=opea-benchmark"
 nodeunlabel="node-type-"
 namespace="default"
@@ -75,12 +75,12 @@ function installChatQnA() {
     #find ./ -name '*value.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
 
     echo "Print helm chart values..."
+    echo "cat chatqna/values.yaml..."
+    cat chatqna/values.yaml
     echo "cat chatqna/$hw_values_file..."
     cat chatqna/$hw_values_file
-    echo "============"
     echo "cat chatqna/$values_file..."
     cat chatqna/$values_file
-    echo "============"
 
     echo "Deploy ChatQnA."
     helm dependency update chatqna
