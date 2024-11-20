@@ -1,0 +1,76 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+name: Manual Build and Publish PyPi Package
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        default: 'v1.1'
+        description: 'Branch to build the binary'
+        required: true
+        type: string
+      repo_list:
+        default: 'GenAIEval,GenAIComps'
+        description: 'List of repos to build the binary'
+        required: true
+        type: string
+      publish:
+        default: 'false'
+        description: 'Publish the binary to PyPi'
+        required: false
+        type: boolean
+
+jobs:
+  get-test-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      nodes: ${{ steps.get-matrix.outputs.repos }}
+    steps:
+      - name: Create Matrix
+        id: get-matrix
+        run: |
+          repos=($(echo ${{ inputs.repo_list }} | tr ',' ' '))
+          repos_json=$(printf '%s\n' "${repos[@]}" | sort -u | jq -R '.' | jq -sc '.')
+          echo "repos=$repos_json" >> $GITHUB_OUTPUT
+
+  run:
+    needs: get-test-matrix
+    strategy:
+      matrix:
+        repo: ${{ fromJson(needs.get-test-matrix.outputs.repos) }}
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout out Repo
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/${{ matrix.repo }}
+          ref: ${{ inputs.branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Build the binary
+        run: |
+          cd ${{ matrix.repo }}
+          python setup.py sdist bdist_wheel
+
+      - name: Publish the binary
+        if: ${{ inputs.publish == 'true' }}
+        env:
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          python -m pip install --upgrade twine
+          python -m twine upload dist/*
+
+      - uses: actions/upload-artifact@v4.3.4
+        with:
+          name: ${{ matrix.repo }}-${{ inputs.branch }}-dist
+          path: ${{ matrix.repo }}/dist
