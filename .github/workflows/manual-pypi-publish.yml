@@ -25,7 +25,7 @@ jobs:
   get-test-matrix:
     runs-on: ubuntu-latest
     outputs:
-      nodes: ${{ steps.get-matrix.outputs.repos }}
+      repos: ${{ steps.get-matrix.outputs.repos }}
     steps:
       - name: Create Matrix
         id: get-matrix
