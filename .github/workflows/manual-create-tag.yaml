@@ -46,24 +46,49 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-          repository: ${{ matrix.repository }}
+          repository: opea-project/${{ matrix.repository }}
           token: ${{ secrets.ACTION_TOKEN }} # Access token for the repo
           ref: ${{ inputs.branch }}
+          path: ${{ matrix.repository }}
 
       - name: Set up Git
         run: |
           git config user.name "CICD-at-OPEA"
           git config user.email "CICD@opea.dev"
 
-      - name: Create Tag
+      - name: Create and Push Tag
         env:
           TAG_NAME: ${{ github.event.inputs.tag_name }}
           TAG_MESSAGE: "Tag created by OPEA CICD"
+        working-directory: ./${{ matrix.repository }}
         run: |
           git tag -a $TAG_NAME -m "$TAG_MESSAGE"
-
-      - name: Push Tag to Repository
-        env:
-          TAG_NAME: ${{ github.event.inputs.tag_name }}
-        run: |
           git push origin $TAG_NAME
+
+  print-tag-url:
+    needs: create-and-push-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print Tag URL
+        run: |
+          repos=($(echo ${{ inputs.repo_list }} | tr ',' ' '))
+          for repo in "${repos[@]}"; do
+              url="https://github.com/opea-project/$repo/releases/tag/${{ github.event.inputs.tag_name }}"
+              response=$(curl -L -s -o /dev/null -w "%{http_code}" "$url")|| true
+              if [ "$response" -ne 200 ]; then
+                echo "**********Validation failed, try again**********"
+                response_retry=$(curl -s -o /dev/null -w "%{http_code}" "$url")
+                if [ "$response_retry" -eq 200 ]; then
+                  echo "$url"
+                else
+                  echo "Invalid tag $url"
+                  status="FAILED"
+                fi
+              else
+                echo "$url"
+              fi
+          done
+          
+          if [ "$status" == "FAILED" ]; then
+              exit 1
+          fi
