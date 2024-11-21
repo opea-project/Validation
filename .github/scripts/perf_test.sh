@@ -69,18 +69,21 @@ function installChatQnA() {
     cp $script_path/$values_file $helm_charts_path/chatqna
     pushd $helm_charts_path
     if [[ -n $IMAGE_REPO ]]; then
-        find ./ -name '*value.yaml' -type f -exec sed -i "s#repository: opea/*#repository: ${IMAGE_REPO}/opea/#g" {} \;
+        find ./ -name '*values.yaml' -type f -exec sed -i "s#repository: opea/*#repository: ${IMAGE_REPO}/opea/#g" {} \;
     fi
-    find ./ -name '*value.yaml' -type f -exec sed -i "s#tag: latest#tag: ${IMAGE_TAG}#g" {} \;
+    find ./ -name '*values.yaml' -type f -exec sed -i "s#tag: latest#tag: ${IMAGE_TAG}#g" {} \;
     #find ./ -name '*value.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
 
     echo "Print helm chart values..."
     echo "cat chatqna/values.yaml..."
     cat chatqna/values.yaml
+    sleep 1s
     echo "cat chatqna/$hw_values_file..."
     cat chatqna/$hw_values_file
+    sleep 1s
     echo "cat chatqna/$values_file..."
     cat chatqna/$values_file
+    sleep 1s
 
     echo "Deploy ChatQnA."
     helm dependency update chatqna
