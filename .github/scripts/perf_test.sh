@@ -71,7 +71,7 @@ function installChatQnA() {
     if [[ -n $IMAGE_REPO ]]; then
         find ./ -name '*values.yaml' -type f -exec sed -i "s#repository: opea/*#repository: ${IMAGE_REPO}/opea/#g" {} \;
     fi
-    find ./ -name '*values.yaml' -type f -exec sed -i "s#tag: latest#tag: ${IMAGE_TAG}#g" {} \;
+    find ./ -name '*values.yaml' -type f -exec sed -i "s#tag: \"latest\"#tag: \"${IMAGE_TAG}\"#g" {} \;
     #find ./ -name '*value.yaml' -type f -exec sed -i "s#imagePullPolicy: IfNotPresent#imagePullPolicy: Always#g" {} \;
 
     echo "Print helm chart values..."
