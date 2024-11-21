@@ -44,7 +44,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: opea-project/${{ matrix.repository }}
           token: ${{ secrets.ACTION_TOKEN }} # Access token for the repo
