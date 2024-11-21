@@ -16,7 +16,7 @@ on:
         required: true
         type: string
       publish:
-        default: 'false'
+        default: false
         description: 'Publish the binary to PyPi'
         required: false
         type: boolean
@@ -25,7 +25,7 @@ jobs:
   get-test-matrix:
     runs-on: ubuntu-latest
     outputs:
-      nodes: ${{ steps.get-matrix.outputs.repos }}
+      repos: ${{ steps.get-matrix.outputs.repos }}
     steps:
       - name: Create Matrix
         id: get-matrix
@@ -47,6 +47,7 @@ jobs:
         with:
           repository: opea-project/${{ matrix.repo }}
           ref: ${{ inputs.branch }}
+          path: ${{ matrix.repo }}
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -55,22 +56,24 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
 
       - name: Build the binary
+        working-directory: ./${{ matrix.repo }}
         run: |
-          cd ${{ matrix.repo }}
+          pip list
           python setup.py sdist bdist_wheel
 
       - name: Publish the binary
-        if: ${{ inputs.publish == 'true' }}
+        if: ${{ fromJSON(inputs.publish) }}
         env:
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        working-directory: ./${{ matrix.repo }}
         run: |
           python -m pip install --upgrade twine
           python -m twine upload dist/*
 
       - uses: actions/upload-artifact@v4.3.4
         with:
-          name: ${{ matrix.repo }}-${{ inputs.branch }}-dist
+          name: ${{ matrix.repo }}-dist
           path: ${{ matrix.repo }}/dist
