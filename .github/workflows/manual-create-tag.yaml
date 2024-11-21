@@ -1,0 +1,69 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+name: Create and Push Tag to Multiple Repos
+
+on:
+  workflow_dispatch: # Allows manual trigger of the workflow
+    inputs:
+      branch:
+        default: 'v1.1rc'
+        description: 'Branch to tag'
+        required: true
+        type: string
+      tag_name: # Input for the tag name
+        default: v1.1
+        description: 'Tag name'
+        required: true
+        type: string
+      repo_list:
+        default: 'GenAIExamples,GenAIEval,GenAIComps,GenAIInfra,GenAIStudio,docs'
+        description: 'List of repos to build the binary'
+        required: true
+        type: string
+
+jobs:
+  get-test-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      repos: ${{ steps.get-matrix.outputs.repos }}
+    steps:
+      - name: Create Matrix
+        id: get-matrix
+        run: |
+          repos=($(echo ${{ inputs.repo_list }} | tr ',' ' '))
+          repos_json=$(printf '%s\n' "${repos[@]}" | sort -u | jq -R '.' | jq -sc '.')
+          echo "repos=$repos_json" >> $GITHUB_OUTPUT
+
+  create-and-push-tag:
+    needs: get-test-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repository: ${{ fromJson(needs.get-test-matrix.outputs.repos) }}
+      fail-fast: false
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ matrix.repository }}
+          token: ${{ secrets.ACTION_TOKEN }} # Access token for the repo
+          ref: ${{ inputs.branch }}
+
+      - name: Set up Git
+        run: |
+          git config user.name "CICD-at-OPEA"
+          git config user.email "CICD@opea.dev"
+
+      - name: Create Tag
+        env:
+          TAG_NAME: ${{ github.event.inputs.tag_name }}
+          TAG_MESSAGE: "Tag created by OPEA CICD"
+        run: |
+          git tag -a $TAG_NAME -m "$TAG_MESSAGE"
+
+      - name: Push Tag to Repository
+        env:
+          TAG_NAME: ${{ github.event.inputs.tag_name }}
+        run: |
+          git push origin $TAG_NAME
