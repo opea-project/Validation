@@ -74,5 +74,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4.3.4
         with:
-          name: ${{ matrix.repo }}-${{ inputs.branch }}-dist
+          name: ${{ matrix.repo }}-dist
           path: ${{ matrix.repo }}/dist
