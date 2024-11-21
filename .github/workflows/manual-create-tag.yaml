@@ -51,17 +51,14 @@ jobs:
           ref: ${{ inputs.branch }}
           path: ${{ matrix.repository }}
 
-      - name: Set up Git
-        run: |
-          git config user.name "CICD-at-OPEA"
-          git config user.email "CICD@opea.dev"
-
       - name: Create and Push Tag
         env:
           TAG_NAME: ${{ github.event.inputs.tag_name }}
           TAG_MESSAGE: "Tag created by OPEA CICD"
         working-directory: ./${{ matrix.repository }}
         run: |
+          git config user.name "CICD-at-OPEA"
+          git config user.email "CICD@opea.dev"
           git tag -a $TAG_NAME -m "$TAG_MESSAGE"
           git push origin $TAG_NAME
 
