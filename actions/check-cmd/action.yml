@@ -18,14 +18,13 @@ runs:
       with:
         repository: opea-project/Validation
         path: Validation
-        ref: add_cmd_check_action
         
     - name: Check Dangerous Command
       shell: bash
       run: |
           cp ${{ github.workspace }}/Validation/.github/scripts/check_cmd_injection.sh ${{ inputs.work_dir }}/
           export WORKSPACE=${{ inputs.work_dir }}
-          bash -x check_cmd_injection.sh
+          bash check_cmd_injection.sh
       working-directory: ${{ inputs.work_dir }}
 
     - name: Clean up
