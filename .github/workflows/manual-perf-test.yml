@@ -32,7 +32,7 @@ on:
         required: true
         type: string
       opea_branch:
-        default: "suyue/bench"
+        default: "suyue/perf"
         description: "GenAIExamples branch to test manifests"
         required: true
         type: string
@@ -171,7 +171,6 @@ jobs:
           MODE: ${{ inputs.mode }}
           NODE_NUM: ${{ matrix.node_num }}
         run: |
-          source stress_venv/bin/activate
           echo "uninstall=true" >> $GITHUB_ENV
           .github/scripts/perf_test.sh --installChatQnA
 
