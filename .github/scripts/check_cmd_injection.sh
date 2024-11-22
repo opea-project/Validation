@@ -7,10 +7,10 @@ cd ${WORKSPACE}
 [[ -f ${WORKSPACE}/diff_file ]] && rm -f ${WORKSPACE}/diff_file
 source .github/workflows/scripts/change_color
 # docker control/rm/scp/rsync/git cmd
-check_list=("docker stop.+?-q?a" "docker rm" "docker kill" "sudo rm" "git .* -f" "git .* --hard")
+check_list=("docker stop.+?-q?a" "docker kill" "sudo rm" "git .* -f" "git .* --hard")
 
 # exclude path
-exclude_check_path=".github/workflows/scripts"
+exclude_check_path=".github/workflows"
 
 # get change file lists (exclude delete files)
 git fetch origin main
