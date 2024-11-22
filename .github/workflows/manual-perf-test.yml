@@ -171,6 +171,7 @@ jobs:
           MODE: ${{ inputs.mode }}
           NODE_NUM: ${{ matrix.node_num }}
         run: |
+          source stress_venv/bin/activate
           echo "uninstall=true" >> $GITHUB_ENV
           .github/scripts/perf_test.sh --installChatQnA
 
