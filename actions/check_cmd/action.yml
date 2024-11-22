@@ -1,0 +1,32 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+---
+name: Check Dangerous Command Injection
+description: Check dangerous command for certain repo to avoid malacious attack.
+inputs:
+  work_dir:
+    description: Directory to check
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout out Validation
+      uses: actions/checkout@v4
+      with:
+        repository: opea-project/Validation
+        path: Validation
+    - name: Check Dangerous Command
+      shell: bash
+      run: |
+          cp ${{ github.workspace }}/Validation/.github/scripts/check_cmd_injection.sh ${{ inputs.work_dir }}/
+          export WORKSPACE=${{ inputs.work_dir }}
+          bash -x check_cmd_injection.sh
+      working-directory: ${{ inputs.work_dir }}
+
+    - name: Clean up
+      if: ${{ always() }}
+      shell: bash
+      run: rm -f ${{ inputs.work_dir }}/diff_file
