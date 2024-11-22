@@ -80,11 +80,8 @@ for build_block in blocks:
         first_part = lines[:args_line_index]
         second_part = lines[args_line_index:]
         insert_build = "\n".join(first_part + ["      args:", new_content] + second_part)
-    print("old\n", docker_compose_content)
-    print(build_block, insert_build)
     pattern = re.compile(re.escape(build_block), re.MULTILINE)
     docker_compose_content = pattern.sub(insert_build, docker_compose_content, count=1)
-    print("new\n", docker_compose_content)
 
 with open(os.path.join(WORKPATH, 'docker-compose.yaml'), 'w') as file:
     file.write(docker_compose_content)
