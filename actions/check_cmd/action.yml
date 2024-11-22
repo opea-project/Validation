@@ -18,6 +18,8 @@ runs:
       with:
         repository: opea-project/Validation
         path: Validation
+        ref: add_cmd_check_action
+        
     - name: Check Dangerous Command
       shell: bash
       run: |
