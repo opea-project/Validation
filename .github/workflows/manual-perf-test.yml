@@ -61,11 +61,11 @@ on:
       #   description: "The user query list, e.g., '4, 8, 16, 640', empty input means the default setting."
       #   required: false
       #   type: string
-      load_config:
-        default: "constant:5"
-        description: "configuration for load test in format load_type:value, constant:5 or poisson:1.0"
-        required: false
-        type: string
+      #load_config:
+      #  default: "constant:5"
+      #  description: "configuration for load test in format load_type:value, constant:5 or poisson:1.0"
+      #  required: false
+      #  type: string
 
 jobs:
   get-build-matrix:
