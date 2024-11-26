@@ -31,9 +31,14 @@ on:
         description: "Tag to apply to images"
         required: true
         type: string
-      opea_branch:
+      example_branch:
         default: "suyue/perf"
         description: "GenAIExamples branch to test manifests"
+        required: true
+        type: string
+      infra_branch:
+        default: "main"
+        description: "GenAIInfra branch to test manifests"
         required: true
         type: string
       eval_branch:
@@ -48,7 +53,7 @@ on:
         type: string
       test_cases:
         default: "e2e"
-        description: "The test cases of chatqna, e.g., e2e, embedserve, rerankserve, llmserve"
+        description: "The test cases of chatqna, e.g., e2e, llmserve, embedserve, rerankserve"
         required: false
         type: string
       # user_queries:
@@ -95,7 +100,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: opea-project/GenAIExamples
-          ref: ${{ inputs.opea_branch }}
+          ref: ${{ inputs.example_branch }}
           path: GenAIExamples
 
       - name: Checkout out GenAIEval
@@ -109,7 +114,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: opea-project/GenAIInfra
-          ref: main
+          ref: ${{ inputs.infra_branch }}
           path: GenAIInfra
 
       - name: Set up stress tool
