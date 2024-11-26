@@ -128,6 +128,7 @@ jobs:
 
       - name: Set up stress tool
         run: |
+          export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
           if ! command -v yq &> /dev/null; then
             sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
@@ -183,6 +184,7 @@ jobs:
           MODE: ${{ inputs.mode }}
           NODE_NUM: ${{ matrix.node_num }}
         run: |
+          export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
           echo "uninstall=true" >> $GITHUB_ENV
           .github/scripts/perf_test.sh --installChatQnA
@@ -194,6 +196,7 @@ jobs:
           TEST_CASES: ${{ inputs.test_cases }}
           NODE_NUM: ${{ matrix.node_num }}
         run: |
+          export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
           cd evals/benchmark
           python benchmark.py
