@@ -234,7 +234,7 @@ jobs:
         run: |
           if [[ "$uninstall" == true && "${{ inputs.cleanup }}" == true ]]; then
             .github/scripts/perf_test.sh --uninstallChatQnA
-            sleep 120s
+            sleep 200s
           fi
 
       - name: K8s Unlabel Nodes
