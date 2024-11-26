@@ -84,12 +84,21 @@ jobs:
   run-benchmark:
     needs: [get-build-matrix]
     runs-on: "${{ inputs.runner }}"
+    env:
+      conda_env_name: "OPEA_perf"
     strategy:
       matrix:
         node_num: ${{ fromJSON(needs.get-build-matrix.outputs.node_nums) }}
     steps:
       - name: Clean Up Working Directory
-        run: sudo rm -rf ${{github.workspace}}/*
+        run: |
+          sudo rm -rf ${{github.workspace}}/*
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          if conda info --envs | grep -q "$conda_env_name"; then
+            echo "$conda_env_name exist!"
+          else
+            conda create -n ${conda_env_name} python=3.12 -y
+          fi
 
       - name: Checkout out Validation
         uses: actions/checkout@v4
@@ -119,6 +128,7 @@ jobs:
 
       - name: Set up stress tool
         run: |
+          source activate ${conda_env_name}
           if ! command -v yq &> /dev/null; then
             sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
             sudo chmod +x /usr/bin/yq
@@ -126,10 +136,7 @@ jobs:
           pip install pandas # install python lib pandas for csv processing
           cp Validation/.github/scripts/process_csv.py GenAIEval/evals/benchmark # copy process_csv.py to GenAIEval folder
           cd GenAIEval
-          python3 -m venv stress_venv
-          source stress_venv/bin/activate
           pip install -r requirements.txt
-          source stress_venv/bin/activate
 
           # config env values
           LOAD_SHAPE=$(echo "${{ inputs.load_config }}" | cut -d':' -f1 | xargs)
@@ -176,6 +183,7 @@ jobs:
           MODE: ${{ inputs.mode }}
           NODE_NUM: ${{ matrix.node_num }}
         run: |
+          source activate ${conda_env_name}
           echo "uninstall=true" >> $GITHUB_ENV
           .github/scripts/perf_test.sh --installChatQnA
 
@@ -186,7 +194,7 @@ jobs:
           TEST_CASES: ${{ inputs.test_cases }}
           NODE_NUM: ${{ matrix.node_num }}
         run: |
-          source stress_venv/bin/activate
+          source activate ${conda_env_name}
           cd evals/benchmark
           python benchmark.py
           
