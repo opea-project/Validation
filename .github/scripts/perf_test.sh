@@ -100,17 +100,10 @@ function installChatQnA() {
     #Prepare dataset
     dataprep_host=$(kubectl -n $namespace get svc chatqna-data-prep -o jsonpath='{.spec.clusterIP}')
     pushd ../GenAIEval/evals/benchmark/data
-    if [[ $mode == *"without_rerank"* ]]; then
-        curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
-           -H "Content-Type: multipart/form-data" \
-           -F "files=@./upload_file_no_rerank.txt" \
-	         -F "chunk_size=3800"
-    else
-        curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
+    curl -X POST "http://${dataprep_host}:6007/v1/dataprep" \
            -H "Content-Type: multipart/form-data" \
            -F "files=@./upload_file.txt" \
 	         -F "chunk_size=3800"
-    fi
     popd
 }
 
