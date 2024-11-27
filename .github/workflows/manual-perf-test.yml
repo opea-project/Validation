@@ -243,4 +243,5 @@ jobs:
         run: |
           if [[ "$uncordon" == true && "${{ inputs.cleanup }}" == true ]]; then
             .github/scripts/perf_test.sh --unlabel
+            sleep 10s
           fi
