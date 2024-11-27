@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       runner:
-        default: "aise-perf"
-        description: "Runner label"
+        default: "gaudi3"
+        description: "Runner label 'aise-perf'"
         required: true
         type: string
       cleanup:
