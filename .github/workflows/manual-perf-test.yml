@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       runner:
-        default: "gaudi3"
+        default: "aise-perf"
         description: "Runner label 'aise-perf'"
         required: true
         type: string
@@ -32,7 +32,7 @@ on:
         required: true
         type: string
       example_branch:
-        default: "suyue/perf"
+        default: "main"
         description: "GenAIExamples branch to test manifests"
         required: true
         type: string
