@@ -20,10 +20,10 @@ status="success"
 for file in ${change_files};
 do
     # check file type: shell yaml python
-    if [[ ! $(echo ${file} | grep -E ".*\.sh") ]] && [[ ! $(echo ${file} | grep -E "*.ya?ml") ]] && [[ ! $(echo ${file} | grep -E ".*\.py") ]];
+    if [[ ! $(echo ${file} | grep -E ".*\.sh") ]] && [[ ! $(echo ${file} | grep -E "*.ya?ml") ]] && [[ ! $(echo ${file} | grep -E ".*\.py") ]] && [[ ! $(echo ${file} | grep -E ".*\.js") ]];
     then
         echo "This file ${file} no need to check, exit"
-        exit 0
+        continue
     fi
     # get added command
     git diff FETCH_HEAD ${file} | grep "^\+.*" | grep -v "^+++" | sed "s|\+||g" > ${WORKSPACE}/diff_file
