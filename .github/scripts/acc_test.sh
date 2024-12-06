@@ -116,6 +116,12 @@ function launch_acc(){
     elif [[ "$1" == "AudioQnA" ]]; then
         export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
         bash run_acc.sh
+    elif [[ "$1" == "FaqGen" ]]; then
+        cd $WORKPATH/GenAIEval/
+        git checkout b12ddbeb8f0976b1905eaea07eda51815e6df07a
+        cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy/
+        export HF_HOME=$PWD
+        bash run_acc.sh
     else
         bash run_acc.sh
     fi
