@@ -48,7 +48,7 @@ function eval_prepare(){
         sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
         # # sed -i 's/1204/120/g' generate_FAQ.py
         # # sed -i 's/1204/120/g' post_process_FAQ.py
-        # # sed -i 's/1204/120/g' evaluate.py
+        sed -i 's/1204/120/g' evaluate.py
         # [ ! -d "$WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result" ] && mkdir -p $WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result
         # python generate_FAQ.py
         # python post_process_FAQ.py
@@ -115,6 +115,12 @@ function launch_acc(){
         fi
     elif [[ "$1" == "AudioQnA" ]]; then
         export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+        bash run_acc.sh
+    elif [[ "$1" == "FaqGen" ]]; then
+        cd $WORKPATH/GenAIEval/
+        git checkout b12ddbeb8f0976b1905eaea07eda51815e6df07a
+        cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy/
+        export HF_HOME=$PWD
         bash run_acc.sh
     else
         bash run_acc.sh
