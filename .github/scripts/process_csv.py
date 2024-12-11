@@ -10,8 +10,8 @@ args = parser.parse_args()
 csv_file = args.csv_file
 
 columns_to_average = [
-    'Average_token_latency',
-    'Duration',
+    # 'Average_token_latency',
+    # 'Duration',
     'End_to_End_latency_Avg',
     'End_to_End_latency_P50',
     'End_to_End_latency_P90',
