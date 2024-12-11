@@ -212,7 +212,8 @@ jobs:
           for file in "${{ github.workspace }}"/*_result.csv; do
               if [[ -f "$file" ]]; then
                   echo "Printing contents of: $file"
-                  cat "$file"
+                  # cat "$file"
+                  head -n 1 "$file" | cut -d, -f1,2,5-; tail -n 1 "$file" |  cut -d, -f1,2,5-
                   echo "-----------------------------------"
               fi
           done
