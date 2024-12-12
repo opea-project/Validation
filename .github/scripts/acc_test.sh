@@ -48,7 +48,7 @@ function eval_prepare(){
         sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
         # # sed -i 's/1204/120/g' generate_FAQ.py
         # # sed -i 's/1204/120/g' post_process_FAQ.py
-        sed -i 's/1204/602/g' evaluate.py
+        sed -i 's/1204/120/g' evaluate.py
         # [ ! -d "$WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result" ] && mkdir -p $WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result
         # python generate_FAQ.py
         # python post_process_FAQ.py

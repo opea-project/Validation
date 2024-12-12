@@ -101,7 +101,7 @@ jobs:
           fi
           conda_version=$(conda --version 2>&1)
           version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
-          if [[ $major_version -ge 6 ]]; then
+          if [[ $version -ge 6 ]]; then
             source activate ${conda_env_name}
           else
             source ${HOME}/miniforge3/etc/profile.d/conda.sh
@@ -120,28 +120,6 @@ jobs:
             pip install ragas==0.1.19
           fi
 
-      - name: Launch Service
-        env:
-          HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
-          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          example: ${{ matrix.example }}
-          dataset: ${{ matrix.dataset }}
-          # IMAGE_REPO: 100.83.111.229:5000/opea
-        run: |
-          export PATH=${HOME}/miniforge3/bin/:$PATH
-          conda_version=$(conda --version 2>&1)
-          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
-          if [[ $major_version -ge 6 ]]; then
-            source activate OPEA_acc
-          else
-            source ${HOME}/miniforge3/etc/profile.d/conda.sh
-            conda activate OPEA_acc
-          fi
-          [ ! -d "acc-log" ] && mkdir acc-log
-          cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
-
       - name: Evaluation Prepare
         shell: bash
         if: ${{ matrix.dataset }} == 'en' && ${{ matrix.dataset }} == 'ChatQnA'
@@ -155,7 +133,7 @@ jobs:
           export PATH=${HOME}/miniforge3/bin/:$PATH
           conda_version=$(conda --version 2>&1)
           version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
-          if [[ $major_version -ge 6 ]]; then
+          if [[ $version -ge 6 ]]; then
             source activate OPEA_acc
           else
             source ${HOME}/miniforge3/etc/profile.d/conda.sh
@@ -164,6 +142,28 @@ jobs:
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
           bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
+
+      - name: Launch Service
+        env:
+          HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          example: ${{ matrix.example }}
+          dataset: ${{ matrix.dataset }}
+          # IMAGE_REPO: 100.83.111.229:5000/opea
+        run: |
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          conda_version=$(conda --version 2>&1)
+          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
+          if [[ $version -ge 6 ]]; then
+            source activate OPEA_acc
+          else
+            source ${HOME}/miniforge3/etc/profile.d/conda.sh
+            conda activate OPEA_acc
+          fi
+          [ ! -d "acc-log" ] && mkdir acc-log
+          cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
 
       - name: Run Evaluation
         env:
@@ -177,7 +177,7 @@ jobs:
           export PATH=${HOME}/miniforge3/bin/:$PATH
           conda_version=$(conda --version 2>&1)
           version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
-          if [[ $major_version -ge 6 ]]; then
+          if [[ $version -ge 6 ]]; then
             source activate OPEA_acc
           else
             source ${HOME}/miniforge3/etc/profile.d/conda.sh
