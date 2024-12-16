@@ -24,14 +24,6 @@ columns_to_average = [
     'Time_Per_Output_Token-TPOT_P90',
     'Time_Per_Output_Token-TPOT_P99',
     'Time_Per_Output_Token-TPOT_Avg',
-    'First_token_latency_Avg',
-    'First_token_latency_P50',
-    'First_token_latency_P90',
-    'First_token_latency_P99',
-    'Next_token_latency_Avg',
-    'Next_token_latency_P50',
-    'Next_token_latency_P90',
-    'Next_token_latency_P99',
     'Output_Tokens_per_Second'
 ]
 
