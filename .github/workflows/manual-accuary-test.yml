@@ -16,9 +16,10 @@ on:
         description: "List of services to test [en, zh]"
         required: true
         type: string
-  pull_request:
-    branches: [main]
-    types: [opened, reopened, ready_for_review, synchronize]
+  # for debug test
+  # pull_request:
+  #   branches: [main]
+  #   types: [opened, reopened, ready_for_review, synchronize]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-on-push
@@ -34,13 +35,10 @@ jobs:
       - name: Create Matrix
         id: get-matrix
         run: |
-          # datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
-          datasets=($(echo "en" | tr ',' ' '))
+          datasets=($(echo ${{ inputs.datasets }} | tr ',' ' '))
           datasets_json=$(printf '%s\n' "${datasets[@]}" | jq -R '.' | jq -sc '.')
           echo "datasets=$datasets_json" >> $GITHUB_OUTPUT
-          # examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
-          examples=($(echo "FaqGen" | tr ',' ' ')) 
-          #,AudioQnA,CodeGen" | tr ',' ' '))
+          examples=($(echo ${{ inputs.examples }} | tr ',' ' '))
           examples_json=$(printf '%s\n' "${examples[@]}" | jq -R '.' | jq -sc '.')
           echo "examples=$examples_json" >> $GITHUB_OUTPUT
 
@@ -150,7 +148,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
-          # IMAGE_REPO: 100.83.111.229:5000/opea
+          IMAGE_REPO: 100.83.111.229:5000/opea
         run: |
           export PATH=${HOME}/miniforge3/bin/:$PATH
           conda_version=$(conda --version 2>&1)
