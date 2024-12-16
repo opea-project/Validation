@@ -16,6 +16,14 @@ on:
         description: "List of services to test [en, zh]"
         required: true
         type: string
+  # for debug test
+  # pull_request:
+  #   branches: [main]
+  #   types: [opened, reopened, ready_for_review, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-on-push
+  cancel-in-progress: true
 
 jobs:
   get-test-matrix:
@@ -64,6 +72,7 @@ jobs:
       - name: Checkout out GenAIEval
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           repository: opea-project/GenAIEval
           path: GenAIEval
 
@@ -88,7 +97,14 @@ jobs:
           else
             conda create -n ${conda_env_name} python=3.12 -y
           fi
-          source activate ${conda_env_name}
+          conda_version=$(conda --version 2>&1)
+          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
+          if [[ $version -ge 6 ]]; then
+            source activate ${conda_env_name}
+          else
+            source ${HOME}/miniforge3/etc/profile.d/conda.sh
+            conda activate ${conda_env_name}
+          fi
           echo "Dataset: ${{ matrix.dataset }}"
           echo "Example: ${{ matrix.example }}"
           cd ${{ github.workspace }}/GenAIEval
@@ -98,32 +114,54 @@ jobs:
             pip install -r requirements.txt
           elif [[ "${example}" == "CodeGen" ]]; then
             pip install -e .
+          elif [[ "${example}" == "FaqGen" ]]; then
+            pip install ragas==0.1.19
           fi
-
-      - name: Launch Service
-        env:
-          HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          example: ${{ matrix.example }}
-          dataset: ${{ matrix.dataset }}
-          IMAGE_REPO: 100.83.111.229:5000/opea
-        run: |
-          [ ! -d "acc-log" ] && mkdir acc-log
-          cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
 
       - name: Evaluation Prepare
         shell: bash
         if: ${{ matrix.dataset }} == 'en' && ${{ matrix.dataset }} == 'ChatQnA'
         env:
           HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           example: ${{ matrix.example }}
           dataset: ${{ matrix.dataset }}
         run: |
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          conda_version=$(conda --version 2>&1)
+          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
+          if [[ $version -ge 6 ]]; then
+            source activate OPEA_acc
+          else
+            source ${HOME}/miniforge3/etc/profile.d/conda.sh
+            conda activate OPEA_acc
+          fi
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --eval_prepare "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-eval_prepare.txt
+
+      - name: Launch Service
+        env:
+          HUGGINGFACEHUB_API_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          example: ${{ matrix.example }}
+          dataset: ${{ matrix.dataset }}
+          IMAGE_REPO: 100.83.111.229:5000/opea
+        run: |
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          conda_version=$(conda --version 2>&1)
+          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
+          if [[ $version -ge 6 ]]; then
+            source activate OPEA_acc
+          else
+            source ${HOME}/miniforge3/etc/profile.d/conda.sh
+            conda activate OPEA_acc
+          fi
+          [ ! -d "acc-log" ] && mkdir acc-log
+          cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_service "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-launch_service.txt
 
       - name: Run Evaluation
         env:
@@ -134,9 +172,21 @@ jobs:
           port: 9001
         run: |
           set -x
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          conda_version=$(conda --version 2>&1)
+          version=$(echo $conda_version | grep -oP 'conda \K[0-9]+\.[0-9]+\.[0-9]+' | cut -d. -f2)
+          if [[ $version -ge 6 ]]; then
+            source activate OPEA_acc
+          else
+            source ${HOME}/miniforge3/etc/profile.d/conda.sh
+            conda activate OPEA_acc
+          fi
+          DPATH=${{ github.workspace }}/GenAIEval/
+          export PYTHONPATH=$PYTHONPATH:$DPATH
+          export PATH=$PATH:/bin:/usr/bin
           [ ! -d "acc-log" ] && mkdir acc-log
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/
-          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_acc "${example}" "${dataset}" > ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
+          bash ${{ github.workspace }}/GenAIExamples/${example}/benchmark/accuracy/acc_test.sh --launch_acc "${example}" "${dataset}"  | tee ${{ github.workspace }}/acc-log/${example}-${dataset}-acc_test.txt
 
       - name: Clean up container
         if: always()
@@ -158,14 +208,19 @@ jobs:
   Process-test-log:
     runs-on: aise-acc
     needs: [setup-acc, get-test-matrix]
+    strategy:
+      matrix:
+        example: ${{ fromJson(needs.get-test-matrix.outputs.examples) }}
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.get-test-matrix.outputs.examples }}
+          name: ${{ matrix.example }}
           path: ${{ github.workspace }}/acc-log/
+        continue-on-error: false
+
       - name: Use the downloaded artifact
-        run: cat ${{ github.workspace }}/acc-log/*acc_test.txt > acc-log/summary.txt
+        run: cat ${{ github.workspace }}/acc-log/*acc_test.txt  | tee acc-log/summary.txt
           
       - name: Publish pipeline artifact
         if: ${{ !cancelled() }}

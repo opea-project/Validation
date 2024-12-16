@@ -35,60 +35,92 @@ function launch_service(){
 function eval_prepare(){
     if [[ "$1" == "ChatQnA" && "$2" == "en" ]]; then
         cd $WORKPATH/GenAIEval/
-        DPATH=$(dirname "$PWD")
+        DPATH=$PWD
         export PYTHONPATH=$PYTHONPATH:$DPATH
         export PATH=$PATH:/bin:/usr/bin
-        cd $WORKPATH/GenAIEval/evals/evaluation/rag_eval/examples
-        # docker run -tid -p 9001:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
-        docker run -tid -p 9001:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
+        # cd $WORKPATH/GenAIEval/evals/evaluation/rag_eval/examples
+        # # docker run -tid -p 9001:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=1,2 -e HABANA_VISIBLE_MODULES=6,7 -e
+        # docker run -tid -p 8005:80 --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e PT_HPU_ENABLE_LAZY_COLLECTIVES=true -e OMPI_MCA_btl_vader_single_copy_mechanism=none -e HF_TOKEN=${HF_TOKEN} --cap-add=sys_nice --ipc=host ghcr.io/huggingface/tgi-gaudi:2.0.1 --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 --max-input-tokens 2048 --max-total-tokens 4096 --sharded true --num-shard 2
     elif [[ "$1" == "FaqGen" ]]; then
         export FAQ_ENDPOINT="http://${ip_address}:9000/v1/faqgen"
         cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy
-        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
-        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/data2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
-        sed -i 's/1024/7/g' post_process_FAQ.py
-        [ ! -d "$WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result" ] && mkdir -p $WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result
-        python generate_FAQ.py
-        python post_process_FAQ.py
-        volume=$PWD/data
-        model=meta-llama/Llama-2-7b-hf
-        docker run -tid -p 8082:80 -v $volume:/data --runtime=habana -e HABANA_VISIBLE_DEVICES=all  -e PT_HPU_LAZY_MODE=0 -e OMPI_MCA_btl_vader_single_copy_mechanism=none  -e HF_TOKEN=$HF_TOKEN --cap-add=sys_nice --ipc=host  ghcr.io/huggingface/tgi-gaudi:2.0.5 --model-id $model --max-input-tokens 3072 --max-total-tokens 4096 
-        # export LLM_ENDPOINT="http://${ip_address}:8082"
-        # curl http://${ip_address}:8082/generate \
-        #   -X POST \
-        #   -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128}}' \
-        #   -H 'Content-Type: application/json'
+        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' generate_FAQ.py
+        sed -i 's/f = open("data\/sqv2_context.json", "r")/f = open("\/scratch-2\/opea-dataset\/FaqGen\/sqv2_context.json", "r")/g' evaluate.py
+        # # sed -i 's/1204/120/g' generate_FAQ.py
+        # # sed -i 's/1204/120/g' post_process_FAQ.py
+        sed -i 's/1204/120/g' evaluate.py
+        # [ ! -d "$WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result" ] && mkdir -p $WORKPATH/GenAIExamples/$1/benchmark/accuracy/data/result
+        # python generate_FAQ.py
+        # python post_process_FAQ.py
+        cp -r /scratch-2/opea-dataset/FaqGen/data $WORKPATH/GenAIExamples/$1/benchmark/accuracy
+        sed -i 's/docker run -it --rm/docker run -dit --rm/g' launch_tgi.sh
+        # sed -i 's/HABANA_VISIBLE_DEVICES=all/HABANA_VISIBLE_DEVICES=1/g' launch_tgi.sh
+        bash launch_tgi.sh
+        export LLM_ENDPOINT="http://${ip_address}:8082"
+        n=0
+        until [[ "$n" -ge 100 ]]; do
+            docker logs tgi_Mixtral > tgi.log
+            n=$((n+1))
+            if grep -q Connected tgi.log; then
+                curl http://${ip_address}:8082/generate \
+                    -X POST \
+                    -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128}}' \
+                    -H 'Content-Type: application/json'
+                break
+            fi
+            sleep 5s
+        done
+        docker ps
     fi
 }
 
 function launch_acc(){
     cd $WORKPATH/GenAIEval/
-    DPATH=$(dirname "$PWD")
+    DPATH=$PWD
     export PYTHONPATH=$PYTHONPATH:$DPATH
     export PATH=$PATH:/bin:/usr/bin
+    if [[ "$1" == "FaqGen" ]]; then
+        echo $1 "rajpurkar/squad_v2"
+    elif [[ "$1" == "ChatQnA" ]]; then
+        if [[ "$2" == "en" ]]; then
+            echo $1 "MultiHop"
+        else
+            echo $1 "CRUD"
+        fi
+    elif [[ "$1" == "CodeGen" ]]; then
+        echo $1 "openai/openai_humaneval"
+    elif [[ "$1" == "AudioQnA" ]]; then
+        echo $1 "andreagasparini/librispeech_test_only"
+    fi
     cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy/
 	if [[ "$1" == "CodeGen" ]]; then
         export CODEGEN_ENDPOINT="http://${ip_address}:7778/v1/codegen"
         export CODEGEN_MODEL="Qwen/CodeQwen1.5-7B-Chat"
         bash run_acc.sh $CODEGEN_MODEL $CODEGEN_ENDPOINT
-    elif [[ "$3" == "ChatQnA" ]]; then
-        sed -i 's|--docs_path MultiHop-RAG/dataset/corpus.json|--docs_path /data2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/corpus.json|g' run_acc.sh
-        sed -i 's|--dataset_path MultiHop-RAG/dataset/MultiHopRAG.json|--dataset_path /data2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/MultiHopRAG.json|g' run_acc.sh
+    elif [[ "$1" == "ChatQnA" ]]; then
+        sed -i 's|--docs_path MultiHop-RAG/dataset/corpus.json|--docs_path /scratch-2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/corpus.json|g' run_acc.sh
+        sed -i 's|--dataset_path MultiHop-RAG/dataset/MultiHopRAG.json|--dataset_path /scratch-2/opea-dataset/ChatQnA/MultiHop-RAG/dataset/MultiHopRAG.json|g' run_acc.sh
         sed -i '/git clone https:\/\/github.com\/yixuantt\/MultiHop-RAG.git/d' run_acc.sh
         sed -i '/git clone https:\/\/github.com\/IAAR-Shanghai\/CRUD_RAG/d' run_acc.sh
         sed -i '/mkdir data\//d' run_acc.sh
         sed -i '/cp CRUD_RAG\/data\/crud_split\/split_merged.json data\//d' run_acc.sh
         sed -i '/cp -r CRUD_RAG\/data\/80000_docs\/ data\//d' run_acc.sh
         sed -i '/python process_crud_dataset.py/d' run_acc.sh
-        sed -i 's|--dataset_path ./data/split_merged.json|--dataset_path /data2/opea-dataset/ChatQnA/data/split_merged.json|' run_acc.sh
-        sed -i 's|--docs_path ./data/80000_docs|--docs_path /data2/opea-dataset/ChatQnA/data/80000_docs/|' run_acc.sh
-        if [[ "$3" == "en" ]]; then
+        sed -i 's|--dataset_path ./data/split_merged.json|--dataset_path /scratch-2/opea-dataset/ChatQnA/data/split_merged.json|' run_acc.sh
+        sed -i 's|--docs_path ./data/80000_docs|--docs_path /scratch-2/opea-dataset/ChatQnA/data/80000_docs/|' run_acc.sh
+        if [[ "$2" == "en" ]]; then
             bash run_acc.sh --dataset=MultiHop
         else
             bash run_acc.sh --dataset=crud
         fi
     elif [[ "$1" == "AudioQnA" ]]; then
         export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+        bash run_acc.sh
+    elif [[ "$1" == "FaqGen" ]]; then
+        cd $WORKPATH/GenAIEval/
+        git checkout b12ddbeb8f0976b1905eaea07eda51815e6df07a
+        cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy/
+        export HF_HOME=$PWD
         bash run_acc.sh
     else
         bash run_acc.sh
