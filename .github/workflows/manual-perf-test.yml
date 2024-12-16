@@ -216,9 +216,14 @@ jobs:
                   echo "-----------------------------------"
               fi
           done
-          spec_file=$(find "${{ github.workspace }}" -maxdepth 1 -name '*_testspec.yaml' | head -n 1)
-          echo "Dump test specification: $spec_file"
-          cat "$spec_file"
+
+      - name: Dump test specification
+        run: |
+          spec_file=$(find "${{ github.workspace }}" -maxdepth 1 -name 'e2e_testspec.yaml' | head -n 1)
+          if [[ -f "$spec_file" ]]; then
+              echo "Dump test specification: $spec_file"
+              cat "$spec_file"
+          fi
 
       - uses: actions/upload-artifact@v4.3.4
         with:
