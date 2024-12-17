@@ -25,10 +25,9 @@ columns_to_average = [
     'Time_Per_Output_Token-TPOT_P99',
     'Time_Per_Output_Token-TPOT_Avg',
     'Output_Tokens_per_Second',
-    'Input_Tokens',
-    'Onput_Tokens',
     'Input_Tokens_per_Second',
-    'Output_Tokens_per_Second'
+    'Onput_Tokens',
+    'Input_Tokens'
 ]
 
 df = pd.read_csv(csv_file, delimiter=',')
