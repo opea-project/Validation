@@ -227,3 +227,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: ${{ github.workspace }}/acc-log/summary.txt
+          name: acc-summary

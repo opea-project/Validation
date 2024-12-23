@@ -14,7 +14,7 @@ function launch_service(){
             echo "}" >> launch_"$1"_"$2".sh
             echo "main" >> launch_"$1"_"$2".sh
             sed -i 's/export EMBEDDING_MODEL_ID="BAAI\/bge-base-en-v1.5"/export EMBEDDING_MODEL_ID="BAAI\/bge-base-zh-v1.5"/' launch_"$1"_"$2".sh
-            sed -i 's/export LLM_MODEL_ID="Intel\/neural-chat-7b-v3-3"/export LLM_MODEL_ID="Qwen\/Qwen2-7B-Instruct"/' launch_"$1"_"$2".sh
+            sed -i 's/LLM_MODEL_ID="meta-llama\/Meta-Llama-3-8B-Instruct"/LLM_MODEL_ID="Qwen\/Qwen2-7B-Instruct"/g' launch_"$1"_"$2".sh
             bash launch_"$1"_"$2".sh
         else
             head -n "$(($(wc -l < test_compose_on_gaudi.sh) - 14))" "test_compose_on_gaudi.sh" > launch_"$1"_"$2".sh
