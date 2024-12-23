@@ -202,7 +202,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.example }}
+          name: ${{ matrix.example }}-${{ matrix.dataset }}
           path: ${{ github.workspace }}/acc-log/*.txt
 
   Process-test-log:
@@ -211,11 +211,20 @@ jobs:
     strategy:
       matrix:
         example: ${{ fromJson(needs.get-test-matrix.outputs.examples) }}
+        dataset: ${{ fromJson(needs.get-test-matrix.outputs.datasets) }}
+        exclude:
+          - example: AudioQnA
+            dataset: zh
+          - example: CodeGen
+            dataset: zh
+          - example: FaqGen
+            dataset: zh
+      fail-fast: false
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.example }}
+          name: ${{ matrix.example }}-${{ matrix.dataset }}
           path: ${{ github.workspace }}/acc-log/
         continue-on-error: false
 
@@ -228,3 +237,4 @@ jobs:
         with:
           path: ${{ github.workspace }}/acc-log/summary.txt
           name: acc-summary
+          overwrite: true
