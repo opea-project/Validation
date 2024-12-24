@@ -229,7 +229,10 @@ jobs:
         continue-on-error: false
 
       - name: Use the downloaded artifact
-        run: cat ${{ github.workspace }}/acc-log/*acc_test.txt  | tee acc-log/summary.txt
+        run: 
+          cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/acc-log/acc_test.sh
+          bash ${{ github.workspace }}/acc-log/acc_test.sh --process_results "${example}" "${dataset}" | tee -a acc-log/summary.txt
+          echo "" >> acc-log/summary.txt
           
       - name: Publish pipeline artifact
         if: ${{ !cancelled() }}
