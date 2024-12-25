@@ -143,11 +143,19 @@ function process_results(){
                     grep "MAP@10" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/MAP@10/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
                     grep "MRR@10" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/MRR@10/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
                 else
-                    grep '    "pass@1":' ChatQnA-CRUD-acc_test.txt | sed 's/.*"pass@1": //'
+                    grep "avg. bleu-avg" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-avg/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. bleu-1" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-1/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. bleu-2" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-2/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. bleu-3" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-3/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. bleu-4" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-4/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. rouge-L" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. rouge-L/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. LLM-score" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. LLM-score/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. length" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. length/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "num" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/num/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
                 fi
                 ;;
             "AudioQnA")
-                grep -A 1 "    WER (Word Error Rate):" AudioQnA-en-acc_test.txt | awk 'NR==1{printf "%s ", $0} NR==2{print $0}'
+                grep -A 1 "WER (Word Error Rate):" AudioQnA-en-acc_test.txt | awk 'NR==1{printf "    %s ", $0} NR==2{print $0}'
                 ;;
             "FaqGen")
                 grep "answer_relevancy" FaqGen-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/answer_relevancy/){print $i": "$(i+1)}}}' | sed "s/'//g"
