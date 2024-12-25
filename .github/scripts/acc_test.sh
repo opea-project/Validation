@@ -158,6 +158,7 @@ function process_results(){
         esac
     else
         echo "File ./$1-$2-acc_test.txt does not exist or is empty."
+        exit 1
     fi
 }
 
