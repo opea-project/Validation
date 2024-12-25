@@ -231,6 +231,7 @@ jobs:
       - name: Use the downloaded artifact
         run: |
           ls acc-log
+          echo "${example}" "${dataset}" 
           cp ${{ github.workspace }}/Validation/.github/scripts/acc_test.sh ${{ github.workspace }}/acc-log/acc_test.sh
           bash ${{ github.workspace }}/acc-log/acc_test.sh --process_results "${example}" "${dataset}" | tee -a acc-log/summary.txt
           echo "" >> acc-log/summary.txt
