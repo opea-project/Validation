@@ -14,7 +14,7 @@ function launch_service(){
             echo "}" >> launch_"$1"_"$2".sh
             echo "main" >> launch_"$1"_"$2".sh
             sed -i 's/export EMBEDDING_MODEL_ID="BAAI\/bge-base-en-v1.5"/export EMBEDDING_MODEL_ID="BAAI\/bge-base-zh-v1.5"/' launch_"$1"_"$2".sh
-            sed -i 's/export LLM_MODEL_ID="Intel\/neural-chat-7b-v3-3"/export LLM_MODEL_ID="Qwen\/Qwen2-7B-Instruct"/' launch_"$1"_"$2".sh
+            sed -i 's/LLM_MODEL_ID="meta-llama\/Meta-Llama-3-8B-Instruct"/LLM_MODEL_ID="Qwen\/Qwen2-7B-Instruct"/g' launch_"$1"_"$2".sh
             bash launch_"$1"_"$2".sh
         else
             head -n "$(($(wc -l < test_compose_on_gaudi.sh) - 14))" "test_compose_on_gaudi.sh" > launch_"$1"_"$2".sh
@@ -91,6 +91,7 @@ function launch_acc(){
         echo $1 "openai/openai_humaneval"
     elif [[ "$1" == "AudioQnA" ]]; then
         echo $1 "andreagasparini/librispeech_test_only"
+        echo "WER (Word Error Rate): "
     fi
     cd $WORKPATH/GenAIExamples/$1/benchmark/accuracy/
 	if [[ "$1" == "CodeGen" ]]; then
@@ -127,7 +128,47 @@ function launch_acc(){
     fi
 }
 
-
+function process_results(){
+    cd $WORKPATH/acc-log
+    if [[ -s ./"$1"-"$2"-acc_test.txt ]]; then
+        grep "$1" ./"$1"-"$2"-acc_test.txt
+        case "$1" in
+            "CodeGen")
+                echo "    pass@1: $(grep '"pass@1":' CodeGen-en-acc_test.txt | sed 's/.*"pass@1": //')"
+                ;;
+            "ChatQnA")
+                if [[ "$2" == "en" ]]; then
+                    grep "Hits@10" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/Hits@10/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "Hits@4" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/Hits@4/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "MAP@10" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/MAP@10/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "MRR@10" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/MRR@10/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                else
+                    grep "avg. bleu-avg" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-avg/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. bleu-1" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-1/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. bleu-2" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-2/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. bleu-3" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-3/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. bleu-4" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. bleu-4/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. rouge-L" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. rouge-L/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. LLM-score" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. LLM-score/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "avg. length" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/avg. length/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                    grep "num" ChatQnA-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/num/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                fi
+                ;;
+            "AudioQnA")
+                grep -A 1 "WER (Word Error Rate):" AudioQnA-en-acc_test.txt | awk 'NR==1{printf "    %s ", $0} NR==2{print $0}'
+                ;;
+            "FaqGen")
+                grep "answer_relevancy" FaqGen-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/answer_relevancy/){print $i": "$(i+1)}}}' | sed "s/'//g"
+                grep "faithfulness" FaqGen-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/faithfulness/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                grep "context_utilization" FaqGen-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/context_utilization/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                grep "rubrics_score_without_reference" FaqGen-en-acc_test.txt | awk -F"[{}:,]" '{for(i=1;i<=NF;i++){if($i~/rubrics_score_without_reference/){print "    "$i": "$(i+1)}}}' | sed "s/'//g"
+                ;;
+        esac
+    else
+        echo "File ./$1-$2-acc_test.txt does not exist or is empty."
+        exit 1
+    fi
+}
 
 #Process the options
 case "$1" in
@@ -139,6 +180,9 @@ case "$1" in
         ;;
     --launch_service)
         launch_service $2 $3
+        ;;
+    --process_results)
+        process_results $2 $3
         ;;
     *)
         echo "Unknown option: $1"
