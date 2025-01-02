@@ -27,22 +27,22 @@ on:
         required: false
         type: string
       tag:
-        default: "latest"
+        default: "1.1"
         description: "Tag to apply to images"
         required: true
         type: string
       example_branch:
-        default: "main"
+        default: "tmp/v1.1"
         description: "GenAIExamples branch to test manifests"
         required: true
         type: string
       infra_branch:
-        default: "main"
+        default: "v1.1"
         description: "GenAIInfra branch to test manifests"
         required: true
         type: string
       eval_branch:
-        default: "main"
+        default: "v1.1"
         description: "GenAIEval branch to test manifests"
         required: true
         type: string
