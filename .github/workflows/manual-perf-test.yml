@@ -42,7 +42,7 @@ on:
         required: true
         type: string
       eval_branch:
-        default: "v1.1"
+        default: "main"
         description: "GenAIEval branch to test manifests"
         required: true
         type: string
