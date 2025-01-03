@@ -65,7 +65,7 @@ function installChatQnA() {
 
     echo "Setting for development test."
     helm_charts_path="../GenAIInfra/helm-charts"
-    hw_values_file="gaudi-values.yaml"
+    hw_values_file="gaudi-tgi-values.yaml"
     cp $script_path/$values_file $helm_charts_path/chatqna
     pushd $helm_charts_path
     if [[ -n $IMAGE_REPO ]]; then
