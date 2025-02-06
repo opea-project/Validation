@@ -88,7 +88,7 @@ function installChatQnA() {
     echo "Deploy ChatQnA."
     helm dependency update chatqna
     helm install chatqna chatqna -f chatqna/$hw_values_file -f chatqna/$values_file
-    wait_until_all_pod_ready $namespace 300s
+    wait_until_all_pod_ready $namespace 1200s
     popd
     sleep 120s
 
@@ -141,7 +141,8 @@ function generate_config(){
     IFS=',' read -r -a test_cases_array <<< "$TEST_CASES"
     for test_case in "${test_cases_array[@]}"; do
         test_case=$(echo "$test_case" | xargs)
-        yq eval ".test_cases.${example}.${test_case}.run_test = true" -i "$output_path"
+        # yq eval ".test_cases.${example}.${test_case}.run_test = true" -i "$output_path"
+        yq -y ".test_cases.${example}.${test_case}.run_test = true" "$output_path" > tmp.yaml && mv tmp.yaml "$output_path"
         if [ $? -ne 0 ]; then
             echo "Unknown test case: $test_case"
         fi
