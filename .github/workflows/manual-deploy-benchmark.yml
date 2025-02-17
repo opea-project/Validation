@@ -1,0 +1,103 @@
+# Copyright (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+name: Run deploy and benchmark on K8S
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        default: "aise-perf"
+        description: "Runner label 'aise-perf'"
+        required: true
+        type: string
+      cleanup:
+        default: true
+        description: "Whether to clean up the pods and the labels"
+        required: true
+        type: boolean
+      example_branch:
+        default: "main"
+        description: "GenAIExamples branch to trigger test scripts and config yaml"
+        required: true
+        type: string
+      eval_branch:
+        default: "main"
+        description: "GenAIEval branch build from source for test, empty means using latest release version"
+        required: true
+        type: string
+      example:
+        default: "ChatQnA"
+        description: "The example to deploy and benchmark"
+        required: true
+        type: string
+      test_mode:
+        default: "oob"
+        description: "The mode of the test, e.g., [oob|tune]"
+        required: true
+        type: string
+      deploy_args:
+        default: "charts_version=0-latest,node=[1],namespace=default,with_rerank=True"
+        description: "The arguments for deploy"
+        required: false
+        type: string
+      benchmark_args:
+        default: "bench_target=[chatqna_qlist_pubmed],dataset=[\"/home/sdp/opea_benchmark/pubmed_10.txt\"],prompt=[10]"
+        description: "The arguments for benchmark"
+        required: false
+        type: string
+
+jobs:
+  run-deploy-and-benchmark:
+    runs-on: "${{ inputs.runner }}"
+    env:
+      conda_env_name: "OPEA_perf"
+    steps:
+      - name: Clean Up Working Directory
+        run: |
+          sudo rm -rf ${{github.workspace}}/*
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          if conda info --envs | grep -q "$conda_env_name"; then
+            echo "$conda_env_name exist!"
+          else
+            conda create -n ${conda_env_name} python=3.12 -y
+          fi
+
+      - name: Checkout out Validation
+        uses: actions/checkout@v4
+        with:
+          path: Validation
+
+      - name: Checkout out GenAIExamples
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIExamples
+          ref: ${{ inputs.example_branch }}
+          path: GenAIExamples
+
+      - name: Checkout out GenAIEval
+        uses: actions/checkout@v4
+        with:
+          repository: opea-project/GenAIEval
+          ref: ${{ inputs.eval_branch }}
+          path: GenAIEval
+
+      - name: Set up running config yaml
+        working-directory: ./Validation
+        env:
+          HF_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          MODEL_PATH: "opea_benchmark/model"
+        run: |
+          set -e 
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          source activate ${conda_env_name}
+          pip install -r requirements.txt
+          bash .github/scripts/run_deploy_and_benchmark.sh --generate_config ${{ inputs.example }} ${{ inputs.deploy_args }} ${{ inputs.benchmark_args }}
+
+      - name: Run deploy and benchmark
+        working-directory: ./Validation
+        run: |
+          set -e
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          source activate ${conda_env_name}
+          bash .github/scripts/run_deploy_and_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }}
