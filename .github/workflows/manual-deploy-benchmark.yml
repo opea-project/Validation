@@ -42,7 +42,7 @@ on:
         required: false
         type: string
       benchmark_args:
-        default: "bench_target=[chatqna_qlist_pubmed],dataset=[\"/home/sdp/opea_benchmark/pubmed_10.txt\"],prompt=[10]"
+        default: "bench_target=[chatqna_qlist_pubmed],dataset=[\"/home/sdp/opea_benchmark/pubmed_10.txt\"],prompt=[10],max_token_size=[128]"
         description: "The arguments for benchmark"
         required: false
         type: string
@@ -110,3 +110,11 @@ jobs:
               echo "EVAL_PATH=${EVAL_PATH}"
           fi
           bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }}
+
+      - name: Publish pipeline artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ github.workspace }}/GenAIExamples/benchmark_output
+          name: benchmark_output
+          overwrite: true
