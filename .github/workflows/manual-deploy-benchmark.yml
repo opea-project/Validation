@@ -37,7 +37,7 @@ on:
         required: true
         type: string
       deploy_args:
-        default: "charts_version=1.2.0,node=[1],namespace=default,with_rerank=True"
+        default: "charts_version=1.2.0,namespace=default,with_rerank=True"
         description: "The arguments for deploy"
         required: false
         type: string

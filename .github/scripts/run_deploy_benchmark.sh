@@ -56,7 +56,7 @@ function run() {
 
     lower_example=$(echo "$example" | tr '[:upper:]' '[:lower:]')
     example_yaml_path="./$example/benchmark_$lower_example.yaml"
-    python deploy_and_benchmark.py "${example_yaml_path}" --test-mode "${test_mode}"
+    python deploy_and_benchmark.py "${example_yaml_path}" --test-mode "${test_mode}" --target-node 1
 }
 
 # Process the options
