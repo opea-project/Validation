@@ -93,15 +93,6 @@ jobs:
           export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
           
-          # Install GenAIEval if the branch is not empty
-          if [ {{ inputs.eval_branch }} != "" ]; then
-             echo "Install GenAIEval from source..."
-             pip uninstall opea-eval || true
-             pip install -e GenAIEval
-             pip list | grep GenAIEval
-             echo "GenAIEval installed successfully!"
-          fi
-          
           pip install -r ../GenAIExamples/requirements.txt
           pip list 
           bash .github/scripts/run_deploy_benchmark.sh --generate_config ${{ inputs.example }} ${{ inputs.deploy_args }} ${{ inputs.benchmark_args }}
@@ -112,4 +103,9 @@ jobs:
           set -e
           export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
+          # Set GenAIEval source code path if the branch is not empty
+          if [ -n "${{ inputs.eval_branch }}" ]; then
+              export EVAL_PATH="${{ github.workspace }}/GenAIEval"
+              echo "EVAL_PATH=${EVAL_PATH}"
+          fi
           bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }}
