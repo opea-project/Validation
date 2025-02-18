@@ -44,7 +44,7 @@ function update_yaml() {
       if [ "$key" = "with_rerank" ]; then
           sed -i "s/^\(\s*enabled\):.*/\1: $value/" "$yaml_path"
       else
-          sed -i "s/$key:.*/$key: $value/" "$yaml_path"
+          sed -i "s#$key:.*#$key: $value#" "$yaml_path"
       fi
     done
 }
