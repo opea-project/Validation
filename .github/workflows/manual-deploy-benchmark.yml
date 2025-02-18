@@ -103,7 +103,7 @@ jobs:
           
           pip install -r ../GenAIExamples/requirements.txt
           pip list 
-          bash .github/scripts/run_deploy_and_benchmark.sh --generate_config ${{ inputs.example }} ${{ inputs.deploy_args }} ${{ inputs.benchmark_args }}
+          bash .github/scripts/run_deploy_benchmark.sh --generate_config ${{ inputs.example }} ${{ inputs.deploy_args }} ${{ inputs.benchmark_args }}
 
       - name: Run deploy and benchmark
         working-directory: ./Validation
@@ -111,4 +111,4 @@ jobs:
           set -e
           export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
-          bash .github/scripts/run_deploy_and_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }}
+          bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }}
