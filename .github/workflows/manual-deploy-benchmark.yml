@@ -17,7 +17,7 @@ on:
         required: true
         type: boolean
       example_branch:
-        default: "main"
+        default: "benchmark"
         description: "GenAIExamples branch to trigger test scripts and config yaml"
         required: true
         type: string
