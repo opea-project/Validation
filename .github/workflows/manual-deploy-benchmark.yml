@@ -94,8 +94,9 @@ jobs:
           source activate ${conda_env_name}
           
           # Install GenAIEval if the branch is not empty
-          if [ -d GenAIEval ]; then
+          if [ {{ inputs.eval_branch }} != "" ]; then
              echo "Install GenAIEval from source..."
+             pip uninstall opea-eval || true
              pip install -e GenAIEval
              pip list | grep GenAIEval
              echo "GenAIEval installed successfully!"
