@@ -18,8 +18,8 @@ function generate_config(){
     fi
 
     # update model path and hf_token
-    sed -i "s/^\s*modelUseHostPath:.*/modelUseHostPath: $HOME/$MODEL_PATH/" "$example_yaml_path"
-    sed -i "s/^\s*HUGGINGFACEHUB_API_TOKEN:.*/HUGGINGFACEHUB_API_TOKEN: $HF_TOKEN/" "$example_yaml_path"
+    sed -i "s/modelUseHostPath:.*/modelUseHostPath: $HOME/$MODEL_PATH" "$example_yaml_path"
+    sed -i "s/HUGGINGFACEHUB_API_TOKEN:.*/HUGGINGFACEHUB_API_TOKEN: $HF_TOKEN/" "$example_yaml_path"
 
     # update other input args
     update_yaml "$example_yaml_path" "$deploy_args"
@@ -41,9 +41,9 @@ function update_yaml() {
       value="${kv[1]}"
 
       if [ "$key" = "with_rerank" ]; then
-          sed -i "s/^\s*enabled:.*/enabled: $value/" "$yaml_path"
+          sed -i "s/enabled:.*/enabled: $value/" "$yaml_path"
       else
-          sed -i "s/^\s*$key:.*/$key: $value/" "$yaml_path"
+          sed -i "s/$key:.*/$key: $value/" "$yaml_path"
       fi
     done
 }
