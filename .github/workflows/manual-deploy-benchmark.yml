@@ -106,7 +106,7 @@ jobs:
           # Set GenAIEval source code path if the branch is not empty
           if [ -n "${{ inputs.eval_branch }}" ]; then
               export EVAL_PATH="${{ github.workspace }}/GenAIEval"
-              ls
+              export PYTHONPATH="${EVAL_PATH}"
               echo "EVAL_PATH=${EVAL_PATH}"
           fi
           bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }}
