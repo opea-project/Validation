@@ -76,7 +76,7 @@ jobs:
           path: GenAIExamples
 
       - name: Checkout out GenAIEval
-        if : ${{ inputs.eval_branch != "" }}
+        if: ${{ inputs.eval_branch != '' }}
         uses: actions/checkout@v4
         with:
           repository: opea-project/GenAIEval
