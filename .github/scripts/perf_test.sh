@@ -135,6 +135,7 @@ function generate_config(){
 
     envsubst < $input_path > $output_path
     cat $output_path
+    sleep 1s
 
     # Mark test cases
     TEST_CASES=${TEST_CASES:-"e2e"}
