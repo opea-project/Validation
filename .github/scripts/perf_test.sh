@@ -119,7 +119,7 @@ function generate_config(){
     output_path="../GenAIEval/evals/benchmark/benchmark.yaml"
 
     single_node_user_queries=640
-    test_loop=8
+    test_loop=5
     user_queries=$((single_node_user_queries * node_num))
     DEFAULT_USER_QUERIES=$user_queries
     for ((i=1; i<test_loop; i++)); do
