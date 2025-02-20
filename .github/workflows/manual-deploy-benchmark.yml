@@ -22,7 +22,7 @@ on:
         required: true
         type: string
       eval_branch:
-        default: "main"
+        default: "benchmark"
         description: "GenAIEval branch build from source for test, empty means using latest release version"
         required: true
         type: string
