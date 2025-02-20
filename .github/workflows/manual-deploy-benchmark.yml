@@ -42,7 +42,7 @@ on:
         required: false
         type: string
       benchmark_args:
-        default: "bench_target=[chatqna_qlist_pubmed],dataset=[\"/home/sdp/opea_benchmark/pubmed_10.txt\"],prompt=[10],max_token_size=[128]"
+        default: "bench_target=[chatqna_qlist_pubmed],dataset=[\"/home/sdp/opea_benchmark/pubmed_10.txt\"],prompt=[10],max_token_size=[128],user_queries=[20],concurrency=[4]"
         description: "The arguments for benchmark"
         required: false
         type: string
