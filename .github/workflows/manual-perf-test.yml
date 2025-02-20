@@ -170,6 +170,8 @@ jobs:
           NODE_NUM: ${{ matrix.node_num }}
         run: |
           rm -rf $TEST_OUTPUT_DIR
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          source activate ${conda_env_name}
           bash .github/scripts/perf_test.sh --generate_config ${{ matrix.node_num }}
           echo "uninstall=false" >> $GITHUB_ENV
           echo "randomstr=$(echo $RANDOM)" >> $GITHUB_OUTPUT
