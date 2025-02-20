@@ -27,7 +27,7 @@ on:
         required: false
         type: string
       tag:
-        default: "latest"
+        default: "1.2"
         description: "Tag to apply to images"
         required: true
         type: string
@@ -37,7 +37,7 @@ on:
         required: true
         type: string
       infra_branch:
-        default: "main"
+        default: "v1.2"
         description: "GenAIInfra branch to test manifests"
         required: true
         type: string
