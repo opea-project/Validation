@@ -32,17 +32,17 @@ on:
         required: true
         type: string
       test_mode:
-        default: "oob"
+        default: "tune"
         description: "The mode of the test, e.g., [oob|tune]"
         required: true
         type: string
       deploy_args:
-        default: "charts_version=1.2.0,namespace=default,with_rerank=True,max_batch_size=[8],max_num_seqs=[8]"
+        default: "charts_version=1.2.0,namespace=default,with_rerank=False,engine=tgi,max_batch_size=[8],max_num_seqs=[8]"
         description: "The arguments for deploy"
         required: false
         type: string
       benchmark_args:
-        default: "bench_target=[chatqna_qlist_pubmed],dataset=[\"/home/sdp/opea_benchmark/pubmed_10.txt\"],prompt=[10],max_token_size=[128],user_queries=[20],concurrency=[4]"
+        default: "bench_target=[chatqna_qlist_pubmed],dataset=[\"/home/sdp/opea_benchmark/pubmed_10.txt\"],prompt=[10],max_token_size=[128],user_queries=[500],concurrency=[128]"
         description: "The arguments for benchmark"
         required: false
         type: string
