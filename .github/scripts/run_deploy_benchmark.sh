@@ -60,6 +60,7 @@ function run() {
 }
 
 function generate_report() {
+    # Under folder GenAIEval/evals/benchmark
     echo "Generate benchmark report..."
     output_path=$1
     output_folders=$(ls -td $output_path/run_benchmark_*)
@@ -84,9 +85,7 @@ case "$1" in
         popd
         ;;
     --generate_report)
-        pushd ../GenAIEval/evals/benchmark
         generate_report $2
-        popd
         ;;
     *)
         echo "Unknown option: $1"
