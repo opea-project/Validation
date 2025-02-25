@@ -35,7 +35,7 @@ function update_yaml() {
     yaml_path=$1
     args=$2
 
-    IFS=',' read -ra pairs <<< "$args"
+    IFS='#' read -ra pairs <<< "$args"
     for pair in "${pairs[@]}"; do
       IFS='=' read -ra kv <<< "$pair"
       key="${kv[0]}"
