@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xe
+set -e
 # Copyright (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
@@ -62,12 +62,12 @@ function run() {
 function generate_report() {
     echo "Generate benchmark report..."
     output_path=$1
-    output_folders=$(ls -td $output_path/run_benchmark_*)
+    output_folders=$(ls -td $output_path/run_benchmark_*/)
     for folder in $output_folders; do
         echo "Folder: $folder"
-        python ../GenAIEval/evals/benchmark/stresscli/stresscli.py report --folder $folder --format csv --output ${folder}/result_report.csv
-        python .github/scripts/process_csv_new.py ${folder}/result_report.csv
-        cat ${folder}/result_report.csv
+        python ../GenAIEval/evals/benchmark/stresscli/stresscli.py report --folder $folder --format csv --output ${folder}result_report.csv
+        python .github/scripts/process_csv_new.py ${folder}result_report.csv
+        cat ${folder}result_report.csv
     done
 }
 
