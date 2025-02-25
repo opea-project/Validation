@@ -53,10 +53,17 @@ function run() {
     echo "Run deploy and benchmark..."
     example=$1
     test_mode=$2
+    target_node=$3
 
     lower_example=$(echo "$example" | tr '[:upper:]' '[:lower:]')
     example_yaml_path="./$example/benchmark_$lower_example.yaml"
-    python deploy_and_benchmark.py "${example_yaml_path}" --test-mode "${test_mode}" --target-node 1
+    extra_args="--test-mode ${test_mode}"
+    if [ -n "$target_node" ]; then
+        extra_args="$extra_args --target-node $target_node"
+        echo "extra_args: $extra_args"
+    fi
+
+    python deploy_and_benchmark.py "${example_yaml_path}" $extra_args
 }
 
 function generate_report() {
@@ -80,7 +87,7 @@ case "$1" in
         ;;
     --run)
         pushd ../GenAIExamples
-        run $2 $3
+        run $2 $3 $4
         popd
         ;;
     --generate_report)
