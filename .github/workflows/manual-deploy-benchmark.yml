@@ -11,11 +11,6 @@ on:
         description: "Runner label 'aise-perf'"
         required: true
         type: string
-      cleanup:
-        default: true
-        description: "Whether to clean up the pods and the labels"
-        required: true
-        type: boolean
       example_branch:
         default: "benchmark"
         description: "GenAIExamples branch to trigger test scripts and config yaml"
@@ -110,6 +105,14 @@ jobs:
               echo "EVAL_PATH=${EVAL_PATH}"
           fi
           bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }}
+
+      - name: Generate report
+        working-directory: ./Validation
+        run: |
+          set -e
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          source activate ${conda_env_name}
+          bash .github/scripts/run_deploy_benchmark.sh --generate_report ${{ github.workspace }}/GenAIExamples/benchmark_output
 
       - name: Publish pipeline artifact
         if: ${{ !cancelled() }}

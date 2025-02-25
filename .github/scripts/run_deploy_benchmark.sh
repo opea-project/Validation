@@ -59,6 +59,18 @@ function run() {
     python deploy_and_benchmark.py "${example_yaml_path}" --test-mode "${test_mode}" --target-node 1
 }
 
+function generate_report() {
+    echo "Generate benchmark report..."
+    output_path=$1
+    output_folders=$(ls -td $output_path/run_benchmark_*)
+    for folder in $output_folders; do
+        echo "Folder: $folder"
+        stresscli/stresscli.py report --folder $folder --format csv --output ${folder}/result_report.csv
+        python process_csv_new.py ${folder}/result_report.csv
+        cat ${folder}/result_report.csv
+    done
+}
+
 # Process the options
 case "$1" in
     --generate_config)
@@ -69,6 +81,11 @@ case "$1" in
     --run)
         pushd ../GenAIExamples
         run $2 $3
+        popd
+        ;;
+    --generate_report)
+        pushd ../GenAIEval/evals/benchmark
+        generate_report $2
         popd
         ;;
     *)
