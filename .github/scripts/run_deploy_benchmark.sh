@@ -60,14 +60,13 @@ function run() {
 }
 
 function generate_report() {
-    # Under folder GenAIEval/evals/benchmark
     echo "Generate benchmark report..."
     output_path=$1
     output_folders=$(ls -td $output_path/run_benchmark_*)
     for folder in $output_folders; do
         echo "Folder: $folder"
-        stresscli/stresscli.py report --folder $folder --format csv --output ${folder}/result_report.csv
-        python process_csv_new.py ${folder}/result_report.csv
+        python ../GenAIEval/evals/benchmark/stresscli/stresscli.py report --folder $folder --format csv --output ${folder}/result_report.csv
+        python .github/scripts/process_csv_new.py ${folder}/result_report.csv
         cat ${folder}/result_report.csv
     done
 }

@@ -107,12 +107,12 @@ jobs:
           bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }}
 
       - name: Generate report
-        working-directory: ./GenAIEval/evals/benchmark
+        working-directory: ./Validation
         run: |
           set -e
           export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
-          bash ${{ github.workspace }}/Validation/.github/scripts/run_deploy_benchmark.sh --generate_report ${{ github.workspace }}/GenAIExamples/benchmark_output
+          bash .github/scripts/run_deploy_benchmark.sh --generate_report ${{ github.workspace }}/GenAIExamples/benchmark_output
 
       - name: Publish pipeline artifact
         if: ${{ !cancelled() }}
