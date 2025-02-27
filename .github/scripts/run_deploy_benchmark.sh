@@ -42,7 +42,7 @@ function update_yaml() {
       value="${kv[1]}"
 
       if [ "$key" = "with_rerank" ]; then
-          sed -i "s/^\(\s*enabled\):.*/\1: $value/" "$yaml_path"
+          sed -i "/teirerank:/{n;s/^\(\s*enabled\):.*/\1: $value/;}" "$yaml_path"
       else
           sed -i "s#$key:.*#$key: $value#" "$yaml_path"
       fi
@@ -69,7 +69,7 @@ function run() {
 function generate_report() {
     echo "Generate benchmark report..."
     output_path=$1
-    output_folders=$(ls -td $output_path/run_benchmark_*/)
+    output_folders=$(ls -td $output_path/benchmark_*/run_benchmark_*_output/)
     for folder in $output_folders; do
         echo -e "\nFolder: $folder"
         python ../GenAIEval/evals/benchmark/stresscli/stresscli.py report --folder $folder --format csv --output ${folder}result_report.csv
