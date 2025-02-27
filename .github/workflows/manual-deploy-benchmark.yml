@@ -12,12 +12,12 @@ on:
         required: true
         type: string
       example_branch:
-        default: "benchmark"
+        default: "main"
         description: "GenAIExamples branch to trigger test scripts and config yaml"
         required: true
         type: string
       eval_branch:
-        default: "benchmark"
+        default: "main"
         description: "GenAIEval branch build from source for test, empty means using latest release version"
         required: true
         type: string
@@ -27,7 +27,7 @@ on:
         required: true
         type: string
       test_mode:
-        default: "tune"
+        default: "oob"
         description: "The mode of the test, e.g., [oob|tune]"
         required: true
         type: string
