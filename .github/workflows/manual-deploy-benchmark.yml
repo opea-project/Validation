@@ -11,11 +11,6 @@ on:
         description: "Runner label 'aise-perf'"
         required: true
         type: string
-      cleanup:
-        default: true
-        description: "Whether to clean up the pods and the labels"
-        required: true
-        type: boolean
       example_branch:
         default: "main"
         description: "GenAIExamples branch to trigger test scripts and config yaml"
@@ -36,14 +31,19 @@ on:
         description: "The mode of the test, e.g., [oob|tune]"
         required: true
         type: string
+      target_node:
+        default: "1"
+        description: "The target node number for the test, if empty, use the default value in config yaml"
+        required: false
+        type: string
       deploy_args:
-        default: "charts_version=0-latest,node=[1],namespace=default,with_rerank=True"
-        description: "The arguments for deploy"
+        default: "charts_version=1.2.0#namespace=default#with_rerank=False#engine=vllm#max_batch_size=[8]#max_num_seqs=[8]"
+        description: "The arguments for deploy, use # to separate the arguments"
         required: false
         type: string
       benchmark_args:
-        default: "bench_target=[chatqna_qlist_pubmed],dataset=[\"/home/sdp/opea_benchmark/pubmed_10.txt\"],prompt=[10]"
-        description: "The arguments for benchmark"
+        default: "bench_target=[chatqna_qlist_pubmed]#dataset=[\"/home/sdp/opea_benchmark/pubmed_10.txt\"]#prompt=[10]#max_token_size=[128]#user_queries=[512]#concurrency=[128]"
+        description: "The arguments for benchmark, use # to separate the arguments"
         required: false
         type: string
 
@@ -76,6 +76,7 @@ jobs:
           path: GenAIExamples
 
       - name: Checkout out GenAIEval
+        if: ${{ inputs.eval_branch != '' }}
         uses: actions/checkout@v4
         with:
           repository: opea-project/GenAIEval
@@ -91,8 +92,10 @@ jobs:
           set -e 
           export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
-          pip install -r requirements.txt
-          bash .github/scripts/run_deploy_and_benchmark.sh --generate_config ${{ inputs.example }} ${{ inputs.deploy_args }} ${{ inputs.benchmark_args }}
+          
+          pip install -r ../GenAIExamples/requirements.txt
+          pip list 
+          bash .github/scripts/run_deploy_benchmark.sh --generate_config ${{ inputs.example }} ${{ inputs.deploy_args }} ${{ inputs.benchmark_args }}
 
       - name: Run deploy and benchmark
         working-directory: ./Validation
@@ -100,4 +103,26 @@ jobs:
           set -e
           export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
-          bash .github/scripts/run_deploy_and_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }}
+          # Set GenAIEval source code path if the branch is not empty
+          if [ -n "${{ inputs.eval_branch }}" ]; then
+              export EVAL_PATH="${{ github.workspace }}/GenAIEval"
+              export PYTHONPATH="${EVAL_PATH}"
+              echo "EVAL_PATH=${EVAL_PATH}"
+          fi
+          bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }} ${{ inputs.target_node }}
+
+      - name: Generate report
+        working-directory: ./Validation
+        run: |
+          set -e
+          export PATH=${HOME}/miniforge3/bin/:$PATH
+          source activate ${conda_env_name}
+          bash .github/scripts/run_deploy_benchmark.sh --generate_report ${{ github.workspace }}/GenAIExamples/benchmark_output
+
+      - name: Publish pipeline artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ github.workspace }}/GenAIExamples/benchmark_output
+          name: benchmark_output
+          overwrite: true
