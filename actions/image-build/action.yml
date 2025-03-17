@@ -52,7 +52,7 @@ runs:
           echo "************Start inject commit id and message************"
           cp ${{ github.workspace }}/Validation/.github/scripts/inject_commit.py ${{ inputs.work_dir }}/
           WORKPATH=${{ inputs.work_dir }}
-          python inject_commit.py
+          python3 inject_commit.py
           cat ${{ inputs.work_dir }}/docker-compose.yaml
           echo "************Inject commit id and message end************"
         fi
