@@ -45,6 +45,7 @@ runs:
     - name: Build Containers
       shell: bash
       run: |
+        set -x
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         echo $service_list
         cp ${{ inputs.docker_compose_path }} ${{ inputs.work_dir }}/docker-compose.yaml
@@ -53,7 +54,7 @@ runs:
           cp ${{ github.workspace }}/Validation/.github/scripts/inject_commit.py ${{ inputs.work_dir }}/
           WORKPATH=${{ inputs.work_dir }}
           python inject_commit.py
-          cat ${{ inputs.work_dir }}/docker-compose.yaml
+          # cat ${{ inputs.work_dir }}/docker-compose.yaml
           echo "************Inject commit id and message end************"
         fi
         cd ${{ inputs.work_dir }}
@@ -64,6 +65,7 @@ runs:
     - name: Push Containers
       shell: bash
       run: |
+        set -x
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
@@ -73,6 +75,7 @@ runs:
       if: ${{ always() }}
       shell: bash
       run: |
+        set -x
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
         docker compose down --rmi all
