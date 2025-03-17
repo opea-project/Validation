@@ -93,8 +93,9 @@ jobs:
           export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
           
+          sed -i /^opea-eval/d ../GenAIExamples/requirements.txt
           pip install -r ../GenAIExamples/requirements.txt
-          pip list 
+          pip list
           bash .github/scripts/run_deploy_benchmark.sh --generate_config ${{ inputs.example }} ${{ inputs.deploy_args }} ${{ inputs.benchmark_args }}
 
       - name: Run deploy and benchmark
