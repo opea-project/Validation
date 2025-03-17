@@ -57,7 +57,7 @@ for build_block in blocks:
     os.chdir(os.path.join(WORKPATH, commit_path))
     COMMIT_SHA = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
     COMMIT_MESSAGE = subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).strip().decode('utf-8')
-    new_content = f"        COMMIT_SHA: {COMMIT_SHA}\n        COMMIT_MESSAGE: |\n" + "\n".join([f"          {line}" for line in COMMIT_MESSAGE.split('\n')])
+    new_content = f"        COMMIT_SHA: {COMMIT_SHA}"
 
     # Update build block with new args
     if "args:" in build_block:
