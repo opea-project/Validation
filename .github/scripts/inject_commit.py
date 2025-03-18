@@ -38,7 +38,12 @@ with open('docker-compose.yaml', 'r') as file:
 
 for build_block in blocks:
     # Extract context and dockerfile paths
-    context = re.search(r'context:\s*(\S+)', build_block).group(1)
+    # context = re.search(r'context:\s*(\S+)', build_block).group(1)
+    context_match = re.search(r'context:\s*(\S+)', build_block)
+    if context_match:
+        context = context_match.group(1)  # 如果匹配成功，提取 context
+    else:
+        context = './'
     dockerfile = re.search(r'dockerfile:\s*(\S+)', build_block).group(1)
     config_path = os.path.join(context, dockerfile).replace('//', '/')
 
@@ -53,8 +58,8 @@ for build_block in blocks:
         file.write(new_dockerfile_content)
 
     # Get commit SHA and message
-    commit_path = re.search(r'context:\s*(\S+)', build_block).group(1)
-    os.chdir(os.path.join(WORKPATH, commit_path))
+    # commit_path = re.search(r'context:\s*(\S+)', build_block).group(1)
+    os.chdir(os.path.join(WORKPATH, context))
     COMMIT_SHA = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
     # COMMIT_MESSAGE = subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).strip().decode('utf-8')
     new_content = f"        COMMIT_SHA: {COMMIT_SHA}"
