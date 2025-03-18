@@ -46,8 +46,8 @@ for build_block in blocks:
     dockerfile_path = os.path.join(WORKPATH, config_path)
     with open(dockerfile_path, 'r') as file:
         dockerfile_content = file.read()
-
-    new_dockerfile_content = re.sub(r'(^[^#]*FROM .*$)', r'\1\nARG COMMIT_SHA\nARG COMMIT_MESSAGE\nLABEL commit.sha=$COMMIT_SHA\nLABEL commit.message=$COMMIT_MESSAGE', dockerfile_content, flags=re.MULTILINE)
+    # new_dockerfile_content = re.sub(r'(^[^#]*FROM .*$)', r'\1\nARG COMMIT_SHA\nARG COMMIT_MESSAGE\nLABEL commit.sha=$COMMIT_SHA\nLABEL commit.message=$COMMIT_MESSAGE', dockerfile_content, flags=re.MULTILINE)
+    new_dockerfile_content = re.sub(r'(^[^#]*FROM .*$)', r'\1\nARG COMMIT_SHA\nLABEL commit.sha=$COMMIT_SHA\n', dockerfile_content, flags=re.MULTILINE)
 
     with open(dockerfile_path, 'w') as file:
         file.write(new_dockerfile_content)
@@ -56,7 +56,7 @@ for build_block in blocks:
     commit_path = re.search(r'context:\s*(\S+)', build_block).group(1)
     os.chdir(os.path.join(WORKPATH, commit_path))
     COMMIT_SHA = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
-    COMMIT_MESSAGE = subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).strip().decode('utf-8')
+    # COMMIT_MESSAGE = subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).strip().decode('utf-8')
     new_content = f"        COMMIT_SHA: {COMMIT_SHA}"
 
     # Update build block with new args
@@ -74,7 +74,7 @@ for build_block in blocks:
         lines = build_block.split('\n')
         args_line_index = 0
         for i, line in enumerate(lines):
-            if "dockerfile:" in line:
+            if "build:" in line:
                 args_line_index = i + 1
                 break
         first_part = lines[:args_line_index]
