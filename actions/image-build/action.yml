@@ -42,7 +42,6 @@ runs:
       with:
         repository: opea-project/Validation
         path: Validation
-        ref: Fix
     - name: Build Containers
       shell: bash
       run: |
