@@ -1,3 +1,5 @@
+# reference https://github.com/actions/actions-runner-controller/blob/master/charts/gha-runner-scale-set/values.yaml
+
 githubConfigUrl: ""
 githubConfigSecret:
   github_token: ""
@@ -12,15 +14,22 @@ proxy:
     - 10.0.0.0/8
 
 maxRunners: 16
-minRunners: 0
+minRunners: 1
 containerMode:
   type: "dind"
 template:
   spec:
+    volumes:
+      - name: model-path
+        hostPath:
+          path: /data2
     containers:
       - name: runner
         image: opea/runner:latest
         command: ["/home/runner/run.sh"]
+        volumeMounts:
+          - name: model-path
+            mountPath: /data2
         resources:
           requests:
             cpu: "40"
@@ -28,9 +37,3 @@ template:
           limits:
             cpu: "40"
             memory: "200Gi"
-      - name: dind
-        image: docker:dind
-        args:
-          - dockerd
-          - --host=unix:///var/run/docker.sock
-          - --group=$(DOCKER_GROUP_GID)
