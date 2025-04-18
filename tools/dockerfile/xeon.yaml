@@ -37,3 +37,17 @@ template:
           limits:
             cpu: "40"
             memory: "200Gi"
+      - name: dind
+        image: docker:dind
+        lifecycle:
+          preStop:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "[preStop] Force cleaning ALL docker data..."
+                  docker rm -f $(docker ps -aq) || true
+                  docker rmi -f $(docker images -aq) || true
+                  docker volume rm -f $(docker volume ls -q) || true
+                  docker network rm $(docker network ls -q | grep -v "bridge\\|host\\|none") || true
