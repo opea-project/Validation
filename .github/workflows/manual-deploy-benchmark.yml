@@ -23,7 +23,7 @@ on:
         type: string
       example:
         default: "ChatQnA"
-        description: "The example to deploy and benchmark"
+        description: "The example to deploy and benchmark, [ChatQnA/DocSum]"
         required: true
         type: string
       test_mode:
@@ -37,7 +37,7 @@ on:
         required: false
         type: string
       deploy_args:
-        default: "charts_version=1.2.0#namespace=default#with_rerank=False#engine=vllm#max_batch_size=[8]#max_num_seqs=[8]"
+        default: "version=0-latest#namespace=default#with_rerank=False#engine=vllm#max_batch_size=[8]#max_num_seqs=[8]"
         description: "The arguments for deploy, use # to separate the arguments"
         required: false
         type: string
