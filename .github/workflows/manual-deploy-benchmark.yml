@@ -100,8 +100,6 @@ jobs:
 
       - name: Run deploy and benchmark
         working-directory: ./Validation
-        env:
-          HF_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
         run: |
           set -e
           export PATH=${HOME}/miniforge3/bin/:$PATH
