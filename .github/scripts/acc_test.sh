@@ -25,7 +25,10 @@ function launch_service(){
         fi
     else
         if [[ "$1" == "CodeGen" ]]; then sed -i 's/--max-total-tokens 2048/--max-total-tokens 4096/g' $WORKPATH/GenAIExamples/$1/docker_compose/intel/hpu/gaudi/compose.yaml; fi
-        head -n "$(($(wc -l < test_compose_on_gaudi.sh) - 10))" "test_compose_on_gaudi.sh" > launch_"$1".sh
+        head -n "$(($(wc -l < test_compose_on_gaudi.sh) - 52))" "test_compose_on_gaudi.sh" > launch_"$1".sh
+        echo "    stop_docker" >> launch_"$1".sh
+        echo "    if [[ "$IMAGE_REPO" == "opea" ]]; then build_docker_images; fi" >> launch_"$1".sh
+        echo "    start_services \"codegen-gaudi-vllm\" \"vllm-gaudi-server\"" >> launch_"$1".sh
         echo "    validate_megaservice" >> launch_"$1".sh
         echo "}" >> launch_"$1".sh
         echo "main" >> launch_"$1".sh
