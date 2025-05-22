@@ -58,8 +58,8 @@ runs:
           echo "************Inject commit id and message end************"
         fi
         cd ${{ inputs.work_dir }}
-        REGISTRY=${{ inputs.registry }} \
-        TAG=${{ inputs.tag }} \
+        export REGISTRY=${{ inputs.registry }}
+        export TAG=${{ inputs.tag }}
         docker compose build ${service_list} --no-cache
         if [[ "${TAG}" == "latest" ]]; then
           echo "If image tag is latest, make sure push another tag along with latest to prevent space leakage."
