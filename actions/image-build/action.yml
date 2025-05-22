@@ -80,10 +80,10 @@ runs:
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         export REGISTRY=${{ inputs.registry }}
         export TAG=${{ inputs.tag }}
-        docker compose push ${service_list}
+        docker compose push ${service_list} -q
         if [[ "${TAG}" == "latest" ]]; then
           export TAG=${GITHUB_SHA}
-          docker compose push ${service_list}
+          docker compose push ${service_list} -q
         fi
       working-directory: ${{ inputs.work_dir }}
 
