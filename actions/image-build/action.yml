@@ -42,6 +42,7 @@ runs:
       with:
         repository: opea-project/Validation
         path: Validation
+
     - name: Build Containers
       shell: bash
       run: |
@@ -60,23 +61,45 @@ runs:
         REGISTRY=${{ inputs.registry }} \
         TAG=${{ inputs.tag }} \
         docker compose build ${service_list} --no-cache
+        if [[ "${TAG}" == "latest" ]]; then
+          echo "If image tag is latest, make sure push another tag along with latest to prevent space leakage."
+          if [[ -z "${service_list}" ]]; then
+            service_list=$(cat ${{ inputs.work_dir }}/docker-compose.yaml | yq -r '.[]' | jq 'keys' | jq -c '.')
+            service_list=$(echo ${service_list} | jq -r '.[]' | tr '\n' ' ')
+          fi
+          for service in ${service_list}; do
+            echo "Tag ${REGISTRY}/${service} latest image with commit id ${GITHUB_SHA}."
+            docker tag ${REGISTRY}/${service}:latest ${REGISTRY}/${service}:${GITHUB_SHA}
+          done
+        fi
       working-directory: ${{ inputs.work_dir }}
+
     - name: Push Containers
       shell: bash
       run: |
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
-        REGISTRY=${{ inputs.registry }} \
-        TAG=${{ inputs.tag }} \
+        export REGISTRY=${{ inputs.registry }}
+        export TAG=${{ inputs.tag }}
         docker compose push ${service_list}
+        if [[ "${TAG}" == "latest" ]]; then
+          export TAG=${GITHUB_SHA}
+          docker compose push ${service_list}
+        fi
       working-directory: ${{ inputs.work_dir }}
+
     - name: Clean up Containers
       if: ${{ always() }}
       shell: bash
       run: |
-        REGISTRY=${{ inputs.registry }} \
-        TAG=${{ inputs.tag }} \
+        export REGISTRY=${{ inputs.registry }}
+        export TAG=${{ inputs.tag }}
         docker compose down --rmi all
+        if [[ "${TAG}" == "latest" ]]; then
+          export TAG=${GITHUB_SHA}
+          docker compose down --rmi all
+        fi
       working-directory: ${{ inputs.work_dir }}
+
     - name: Remove Containers
       if: ${{ always() }}
       shell: bash
