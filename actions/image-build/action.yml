@@ -80,6 +80,7 @@ runs:
     - name: Push Containers
       shell: bash
       run: |
+        set -x
         service_list=$(echo ${{ inputs.service_list }} | tr ',' ' ')
         export REGISTRY=${{ inputs.registry }}
         export TAG=${{ inputs.tag }}
