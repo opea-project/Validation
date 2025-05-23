@@ -61,11 +61,14 @@ runs:
         export REGISTRY=${{ inputs.registry }}
         export TAG=${{ inputs.tag }}
         docker compose build ${service_list} --no-cache
+        set -x
         if [[ "${TAG}" == "latest" ]]; then
           echo "If image tag is latest, make sure push another tag along with latest to prevent space leakage."
           if [[ -z "${service_list}" ]]; then
+            echo "Service list is empty, use all services in docker-compose.yaml file."
             service_list=$(cat ${{ inputs.work_dir }}/docker-compose.yaml | yq -r '.[]' | jq 'keys' | jq -c '.')
             service_list=$(echo ${service_list} | jq -r '.[]' | tr '\n' ' ')
+            echo "service_list=${service_list}"
           fi
           for service in ${service_list}; do
             echo "Tag ${REGISTRY}/${service} latest image with commit id ${GITHUB_SHA}."
