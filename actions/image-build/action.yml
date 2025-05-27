@@ -66,8 +66,7 @@ runs:
           echo "If image tag is latest, make sure push another tag along with latest to prevent space leakage."
           if [[ -z "${service_list}" ]]; then
             echo "Service list is empty, use all services in docker-compose.yaml file."
-            service_list=$(cat ${{ inputs.work_dir }}/docker-compose.yaml | yq -r '.[]' | jq 'keys' | jq -c '.')
-            service_list=$(echo ${service_list} | jq -r '.[]' | tr '\n' ' ')
+            service_list=$(yq -r '.services | keys[]' ${{ inputs.work_dir }}/docker-compose.yaml | tr '\n' ' ')
             echo "service_list=${service_list}"
           fi
           for service in ${service_list}; do
