@@ -11,6 +11,11 @@ on:
         description: "Runner label 'aise-perf'"
         required: true
         type: string
+      clean_up:
+        default: true
+        description: "Clean up the working directory before running the workflow"
+        required: false
+        type: boolean
       example_branch:
         default: "main"
         description: "GenAIExamples branch to trigger test scripts and config yaml"
@@ -110,7 +115,7 @@ jobs:
               export PYTHONPATH="${EVAL_PATH}"
               echo "EVAL_PATH=${EVAL_PATH}"
           fi
-          bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }} ${{ inputs.target_node }}
+          bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }} ${{ inputs.target_node }} ${{ inputs.clean_up }}
 
       - name: Generate report
         working-directory: ./Validation
