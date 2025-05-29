@@ -11,6 +11,11 @@ on:
         description: "Runner label 'aise-perf'"
         required: true
         type: string
+      clean_up:
+        default: true
+        description: "Clean up the example deployment after running the workflow"
+        required: false
+        type: boolean
       example_branch:
         default: "main"
         description: "GenAIExamples branch to trigger test scripts and config yaml"
@@ -23,7 +28,7 @@ on:
         type: string
       example:
         default: "ChatQnA"
-        description: "The example to deploy and benchmark"
+        description: "The example to deploy and benchmark, [ChatQnA/DocSum]"
         required: true
         type: string
       test_mode:
@@ -37,7 +42,7 @@ on:
         required: false
         type: string
       deploy_args:
-        default: "charts_version=1.2.0#namespace=default#with_rerank=False#engine=vllm#max_batch_size=[8]#max_num_seqs=[8]"
+        default: "version=0-latest#namespace=default#with_rerank=False#engine=vllm#max_batch_size=[8]#max_num_seqs=[8]"
         description: "The arguments for deploy, use # to separate the arguments"
         required: false
         type: string
@@ -53,6 +58,10 @@ jobs:
     env:
       conda_env_name: "OPEA_perf"
     steps:
+      - name: Show All Inputs
+        run: |
+          echo "Inputs:"
+          echo '${{ toJson(inputs) }}'
       - name: Clean Up Working Directory
         run: |
           sudo rm -rf ${{github.workspace}}/*
@@ -93,8 +102,9 @@ jobs:
           export PATH=${HOME}/miniforge3/bin/:$PATH
           source activate ${conda_env_name}
           
+          sed -i /^opea-eval/d ../GenAIExamples/requirements.txt
           pip install -r ../GenAIExamples/requirements.txt
-          pip list 
+          pip list
           bash .github/scripts/run_deploy_benchmark.sh --generate_config ${{ inputs.example }} ${{ inputs.deploy_args }} ${{ inputs.benchmark_args }}
 
       - name: Run deploy and benchmark
@@ -109,7 +119,7 @@ jobs:
               export PYTHONPATH="${EVAL_PATH}"
               echo "EVAL_PATH=${EVAL_PATH}"
           fi
-          bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }} ${{ inputs.target_node }}
+          bash .github/scripts/run_deploy_benchmark.sh --run ${{ inputs.example }} ${{ inputs.test_mode }} ${{ inputs.target_node }} ${{ inputs.clean_up }}
 
       - name: Generate report
         working-directory: ./Validation

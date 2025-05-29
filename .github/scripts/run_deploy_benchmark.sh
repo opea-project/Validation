@@ -54,12 +54,17 @@ function run() {
     example=$1
     test_mode=$2
     target_node=$3
+    clean_up=$4
 
     lower_example=$(echo "$example" | tr '[:upper:]' '[:lower:]')
     example_yaml_path="./$example/benchmark_$lower_example.yaml"
     extra_args="--test-mode ${test_mode}"
     if [ -n "$target_node" ]; then
         extra_args="$extra_args --target-node $target_node"
+        echo "extra_args: $extra_args"
+    fi
+    if [ "$clean_up" = "false" ]; then
+        extra_args="$extra_args --no-clean-up"
         echo "extra_args: $extra_args"
     fi
 
@@ -87,7 +92,7 @@ case "$1" in
         ;;
     --run)
         pushd ../GenAIExamples
-        run $2 $3 $4
+        run $2 $3 $4 $5
         popd
         ;;
     --generate_report)
