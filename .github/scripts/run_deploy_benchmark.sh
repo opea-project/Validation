@@ -64,7 +64,7 @@ function run() {
         echo "extra_args: $extra_args"
     fi
     if [ "$clean_up" = "false" ]; then
-        extra_args="$extra_args --clean-up False"
+        extra_args="$extra_args --no-clean-up"
         echo "extra_args: $extra_args"
     fi
 
