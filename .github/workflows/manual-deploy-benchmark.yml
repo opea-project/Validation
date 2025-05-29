@@ -13,7 +13,7 @@ on:
         type: string
       clean_up:
         default: true
-        description: "Clean up the working directory before running the workflow"
+        description: "Clean up the example deployment after running the workflow"
         required: false
         type: boolean
       example_branch:
