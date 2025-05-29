@@ -58,6 +58,10 @@ jobs:
     env:
       conda_env_name: "OPEA_perf"
     steps:
+      - name: Show All Inputs
+        run: |
+          echo "Inputs:"
+          echo '${{ toJson(inputs) }}'
       - name: Clean Up Working Directory
         run: |
           sudo rm -rf ${{github.workspace}}/*
