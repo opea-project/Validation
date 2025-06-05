@@ -6,15 +6,12 @@ set -xe
 
 SCRIPT_DIR="/home/sdp/workspace"
 
-# clean up tag images
-output=$("$SCRIPT_DIR/registry.sh" images)
-lines=$(echo "$output" | grep -v latest | grep -v "v0.9")
-#lines=$(echo "$output" | grep "v0.9")
-for line in $lines; do
-    image=$(echo "$line" | cut -d':' -f1)
-    tag=$(echo "$line" | cut -d':' -f2)
-    $SCRIPT_DIR/registry.sh delete $image $tag
-done
+python $SCRIPT_DIR/clean_registry.py
+
+# to read_only mode
+docker kill registry
+docker rm registry
+docker run -d -p 5000:5000 --restart=always --name registry -v $SCRIPT_DIR/read_only.yaml:/etc/docker/registry/config.yml -v /data/local_image_registry:/var/lib/registry registry:2
 
 sleep 20
 
@@ -24,4 +21,4 @@ docker exec registry bin/registry garbage-collect /etc/docker/registry/config.ym
 # restart registry
 docker kill registry
 docker rm registry
-docker run -d -p 5000:5000 --restart=always --name registry -v /home/sdp/workspace/registry.yaml:/etc/docker/registry/config.yml -v /data/local_image_registry:/var/lib/registry registry:2
+docker run -d -p 5000:5000 --restart=always --name registry -v $SCRIPT_DIR/registry.yaml:/etc/docker/registry/config.yml -v /data/local_image_registry:/var/lib/registry registry:2
