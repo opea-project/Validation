@@ -95,7 +95,7 @@ jobs:
       - name: Set up running config yaml
         working-directory: ./Validation
         env:
-          HF_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           MODEL_PATH: "opea_benchmark/model"
         run: |
           set -e 

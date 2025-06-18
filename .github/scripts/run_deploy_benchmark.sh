@@ -20,7 +20,7 @@ function generate_config(){
 
     # update model path and hf_token
     sed -i "s#modelUseHostPath:.*#modelUseHostPath: $HOME/$MODEL_PATH#" "$example_yaml_path"
-    sed -i "s/^\(\s*HUGGINGFACEHUB_API_TOKEN\):.*/\1: $HF_TOKEN/" "$example_yaml_path"
+    sed -i "s/^\(\s*HF_TOKEN\):.*/\1: $HF_TOKEN/" "$example_yaml_path"
 
     # update other input args
     update_yaml "$example_yaml_path" "$deploy_args"
