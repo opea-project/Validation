@@ -16,18 +16,33 @@ block = ""
 i = 0
 while i < len(lines):
     line = lines[i].rstrip()  # Remove trailing newline characters
-    if re.match(r'^\s*build:', line):
-        block = line
-        i += 1
-        while i < len(lines):
-            next_line = lines[i].rstrip()  # Remove trailing newline characters
-            if re.match(r'^\s{6,}', next_line):
-                block += "\n" + next_line
+    service_match = re.match(r'^\s{2}(\S+):', line)
+    if service_match:
+        service_name = service_match.group(1)
+        if service_name not in ["vllm", "vllm-gaudi"]: # Skip services "vllm" and "vllm-gaudi"
+            # print(f"Processing service: {service_name}")
+            i += 1
+            line = lines[i].rstrip() # Remove trailing newline characters
+
+            if re.match(r'^\s*build:', line):
+                block = line
                 i += 1
+                while i < len(lines):
+                    next_line = lines[i].rstrip()  # Remove trailing newline characters
+                    if re.match(r'^\s{6,}', next_line):
+                        block += "\n" + next_line
+                        i += 1
+                    else:
+                        blocks.append(block)
+                        block = ""
+                        break
             else:
-                blocks.append(block)
-                block = ""
-                break
+                i += 1
+        else:
+            # Skipping service: {"vllm", "vllm-gaudi"}
+            i += 1
+            while i < len(lines) and not re.match(r'^\s*(\S+):', lines[i]):
+                i += 1
     else:
         i += 1
 
@@ -41,7 +56,7 @@ for build_block in blocks:
     # context = re.search(r'context:\s*(\S+)', build_block).group(1)
     context_match = re.search(r'context:\s*(\S+)', build_block)
     if context_match:
-        context = context_match.group(1)  # 如果匹配成功，提取 context
+        context = context_match.group(1)  # if match, get context
     else:
         context = './'
     dockerfile = re.search(r'dockerfile:\s*(\S+)', build_block).group(1)
