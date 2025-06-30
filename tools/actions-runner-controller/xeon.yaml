@@ -1,0 +1,96 @@
+# reference https://github.com/actions/actions-runner-controller/blob/master/charts/gha-runner-scale-set/values.yaml
+
+githubConfigUrl: ""
+githubConfigSecret:
+  github_token: ""
+runnerGroup: ""
+proxy:
+  noProxy:
+    - .intel.com
+    - intel.com
+    - 127.0.0.1
+    - localhost
+    - ::1
+    - 192.168.0.0/16
+    - 10.0.0.0/8
+    - 100.83.122.0/24
+maxRunners: 8
+minRunners: 1
+
+template:
+  spec:
+    terminationGracePeriodSeconds: 100
+    volumes:
+      - name: work
+        emptyDir: {}
+      - name: dind-sock
+        emptyDir: {}
+      - name: dind-externals
+        emptyDir: {}
+      - name: model-path
+        hostPath:
+          path: /data2
+    nodeSelector:
+      runner-node: "true"
+    initContainers:
+      - name: init-dind-externals
+        image: ghcr.io/actions/actions-runner:latest
+        command:
+          ["cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+        volumeMounts:
+          - name: dind-externals
+            mountPath: /home/runner/tmpDir
+    containers:
+      - name: runner
+        image: opea/runner:latest
+        command: ["/home/runner/run.sh"]
+        env:
+          - name: DOCKER_HOST
+            value: unix:///var/run/docker.sock
+        resources:
+          requests:
+            cpu: "40"
+            memory: "200Gi"
+          limits:
+            cpu: "40"
+            memory: "200Gi"
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+          - name: model-path
+            mountPath: /data2
+      - name: dind
+        image: docker:dind
+        args:
+          - dockerd
+          - --host=unix:///var/run/docker.sock
+          - --group=$(DOCKER_GROUP_GID)
+        env:
+          - name: DOCKER_GROUP_GID
+            value: "123"
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+          - name: dind-externals
+            mountPath: /home/runner/externals
+          - name: model-path
+            mountPath: /data2
+        lifecycle:
+          preStop:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  docker rm -f $(docker ps -aq) || true > /proc/1/fd/1
+                  docker rmi -f $(docker images -aq) || true > /proc/1/fd/1
+                  docker volume rm -f $(docker volume ls -q) || true > /proc/1/fd/1
+                  docker network rm $(docker network ls -q | grep -v "bridge\\|host\\|none") || true > /proc/1/fd/1
+                  rm -rf /home/runner/_work/* /home/runner/externals/* /home/runner/.cache /var/lib/docker/overlay2 || true > /proc/1/fd/1
+                  sleep 3  > /proc/1/fd/1
