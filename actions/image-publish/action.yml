@@ -18,20 +18,42 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Fix Image Name
+      shell: bash
+      run: |
+        # Fix Image and Tag when the image postfix is `-openeuler`. 
+        if [[ "${{ inputs.local_image_ref }}" == *"-openeuler:"* ]]; then
+          img=${{ inputs.local_image_ref }}
+          repo=${img%:*}
+          tag=${img#*:}
+          new_repo=${repo%-openeuler}
+          new_tag=${tag}-openeuler
+          echo "local_image=${new_repo}:${new_tag}" >> $GITHUB_ENV
+          echo "tag_postfix=openeuler" >> $GITHUB_ENV
+        else 
+          echo "local_image=${{ inputs.local_image_ref }}" >> $GITHUB_ENV
+        fi
+
     - name: Pull Images
       shell: bash
       run: |
-        docker rmi ${{ inputs.local_image_ref }} || true
-        docker pull ${{ inputs.local_image_ref }}
+        docker rmi ${{ env.local_image }} || true
+        docker pull ${{ env.local_image }}
 
     - name: Push Images
       shell: bash
       run: |
         # Tag the Images with New Names 
         for tag in $(echo ${{ inputs.publish_tags }} | tr ',' ' '); do
-          docker tag ${{ inputs.local_image_ref }} ${{ inputs.image_name }}:${tag}
-          docker push ${{ inputs.image_name }}:${tag}
-          docker rmi ${{ inputs.image_name }}:${tag}
+          image_name=${{ inputs.image_name }}
+          # If env.tag_postfix not empty, then remove it from the image name and add into tag. 
+          if [[ -n "${{ env.tag_postfix }}" ]]; then
+              image_name=${image_name%-${{ env.tag_postfix }}}
+              tag=${tag}-${{ env.tag_postfix }}
+          fi
+          docker tag ${{ env.local_image }} ${image_name}:${tag}
+          docker push ${image_name}:${tag}
+          docker rmi ${image_name}:${tag} || true
         done
 
     - name: Cleanup
@@ -39,4 +61,4 @@ runs:
       shell: bash
       run: |
         docker logout
-        docker rmi ${{ inputs.local_image_ref }} || true
+        docker rmi ${{ env.local_image }} || true
