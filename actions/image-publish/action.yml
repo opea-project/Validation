@@ -25,7 +25,7 @@ runs:
         if [[ "${{ inputs.local_image_ref }}" == *"-openeuler:"* ]]; then
           img=${{ inputs.local_image_ref }}
           repo=${img%:*}
-          tag=${img#*:}
+          tag=${img##*:}
           new_repo=${repo%-openeuler}
           new_tag=${tag}-openeuler
           echo "local_image=${new_repo}:${new_tag}" >> $GITHUB_ENV
