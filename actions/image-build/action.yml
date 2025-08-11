@@ -70,8 +70,12 @@ runs:
             echo "service_list=${service_list}"
           fi
           for service in ${service_list}; do
-            echo "Tag ${REGISTRY}/${service} latest image with commit id ${GITHUB_SHA}."
-            docker tag ${REGISTRY}/${service}:latest ${REGISTRY}/${service}:${GITHUB_SHA}
+            if [[ "${service}" == *"-openeuler" ]]; then
+                service=${service%-openeuler}
+                docker tag ${REGISTRY}/${service}:latest-openeuler ${REGISTRY}/${service}:${GITHUB_SHA}-openeuler
+            else
+                docker tag ${REGISTRY}/${service}:latest ${REGISTRY}/${service}:${GITHUB_SHA}
+            fi 
           done
         fi
       working-directory: ${{ inputs.work_dir }}
